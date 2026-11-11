@@ -198,8 +198,54 @@ local function Follow(holder)
     mover:SetPoint(bottom, fill, bottom)
 end
 
----One liquid's step: its look and fill looked at now and then, the liquid moved on, a liquid at
----rest at IDLE_FPS only.
+-- The front's alpha by the share of the bar filled: shown, then out over the last few percent, where
+-- it would sit against the bar's end.
+local FADE_FROM = 0.97
+local FRONT_POINTS = { { 0, 1 }, { FADE_FROM, 1 }, { 1, 0 } }
+-- The client's curve for it, made the first time; false on a client without curves.
+---@type CurveObject|false|nil
+local frontCurve
+
+---@return CurveObject|false
+local function FrontCurve()
+    if frontCurve == nil then
+        frontCurve = false
+        if C_CurveUtil and UnitHealthPercent and UnitPowerPercent then
+            local curve = C_CurveUtil.CreateCurve()
+            curve:SetType(Enum.LuaCurveType.Linear)
+            for _, point in ipairs(FRONT_POINTS) do
+                curve:AddPoint(point[1], point[2])
+            end
+            frontCurve = curve
+        end
+    end
+    return frontCurve
+end
+
+---How much of a bar's front shows. A unit's health or power: the client's own percentage on the
+---curve, which may come back hidden (secret) and goes straight to SetAlpha. Other bars, or without
+---curves: by the bar's own values; shown when those are hidden.
+---@param holder AddonHolder
+---@return number
+local function FrontAlpha(holder)
+    if not ns.db().fadeFront then return 1 end
+    local unit, curve, kind = ns.UnitOf(holder), FrontCurve(), holder.kind
+    if curve and unit and kind == "health" then
+        return UnitHealthPercent(unit, false, curve) --[[@as number]]
+    end
+    if curve and unit and kind == "power" then
+        return UnitPowerPercent(unit, nil, false, curve) --[[@as number]]
+    end
+    local bar = holder.bar
+    local value, low, high = bar:GetValue(), bar:GetMinMaxValues()
+    if ns.IsSecret(value) or ns.IsSecret(low) or ns.IsSecret(high) or high <= low then return 1 end
+    local share = (value - low) / (high - low)
+    if share < FADE_FROM then return 1 end
+    return math.max(0, (1 - share) / (1 - FADE_FROM))
+end
+
+---One liquid's step: its look and fill looked at now and then, its front faded, the liquid moved on,
+---a liquid at rest at IDLE_FPS only.
 ---@param holder AddonHolder
 ---@param dt number
 local function Step(holder, dt)
@@ -210,6 +256,7 @@ local function Step(holder, dt)
         Follow(holder)
         ns.Recolor(holder)
     end
+    holder.front:SetAlpha(FrontAlpha(holder))
     local liquid = holder.liquid
     if liquid:IsQuiet() then
         holder.idle = holder.idle + dt
@@ -245,7 +292,13 @@ local function LiquidFor(holder, reversed)
     if liquid then return liquid end
     local parent = reversed and ns.Mirror(holder.mover) or holder.mover
     local Themes = ns.Themes
-    liquid = ns.Liquid.New(parent, holder.width + ROOM, holder.height, Themes.Get(Themes.default), ns.db().effects)
+    liquid = ns.Liquid.New(parent, holder.width + ROOM, holder.height, Themes.Get(Themes.default), ns.Effects())
+    -- The front's line and glow onto the front frame, whose alpha the plugin sets: the liquid sets
+    -- their own alpha each frame. Their anchors stay on the liquid's frame.
+    for _, tip in ipairs(liquid.tips) do
+        tip:SetParent(holder.front)
+    end
+    liquid.glow:SetParent(holder.front)
     holder.liquids[reversed] = liquid
     return liquid
 end
@@ -262,11 +315,17 @@ local function Build(bar, width, height, reversed)
     clip:SetAllPoints(bar)
     clip:SetClipsChildren(true)
     clip:Hide()
+    local mover = CreateFrame("Frame", nil, clip)
+    -- The liquid's front, above the rest of it.
+    local front = CreateFrame("Frame", nil, clip)
+    front:SetAllPoints(clip)
+    front:SetFrameLevel(mover:GetFrameLevel() + 1)
     ---@type AddonHolder
     local holder = {
         bar = bar,
         clip = clip,
-        mover = CreateFrame("Frame", nil, clip),
+        mover = mover,
+        front = front,
         liquids = {},
         reversed = reversed,
         live = false,
@@ -363,7 +422,8 @@ function ns.Attach(bar, kind, setting, owner)
     holder.mover:SetWidth(width)
     local liquid = holder.liquid
     liquid:SetSize(width + ROOM, height)
-    liquid:SetOptions(ns.db().effects)
+    holder.effects = ns.Effects()
+    liquid:SetOptions(holder.effects)
     if not holder.live then
         holder.live = true
         live[#live + 1] = holder

@@ -63,6 +63,8 @@ ElvUI = nil
 ---@field Update fun(self: AddonLiquid, dt: number, edge: number)
 ---@field HideAll fun(self: AddonLiquid)
 ---@field IsQuiet fun(self: AddonLiquid): boolean
+---@field tips Texture[] the slices of the bright line along the front
+---@field glow Texture the glow on the front
 
 ---@class AddonLiquidClass
 ---@field New fun(parent: Frame, width: number, height: number, theme: AddonTheme, options: AddonEffects): AddonLiquid
@@ -109,6 +111,12 @@ ElvUI = nil
 ---@field Attach fun(bar: StatusBar, kind: string, setting: string, owner: (AddonFrame|string)?): AddonHolder?
 ---@field ByUnit fun(holder: AddonHolder): boolean
 ---@field ForgetLooks fun()
+---@field levelOrder string[]
+---@field levels table<string, AddonEffects> Smooth Animated Bars' three levels, by key
+---@field groupOrder string[]
+---@field Level fun(): string
+---@field Effects fun(): AddonEffects
+---@field ApplyEffects fun()
 ---@field Mirror fun(frame: Frame): AddonMirror
 ---@field Detach fun(bar: StatusBar)
 ---@field Live fun(): AddonHolder[]
@@ -123,6 +131,8 @@ ElvUI = nil
 ---@field bar StatusBar
 ---@field clip Frame cuts the liquid off at the bar
 ---@field mover Frame one bar wide, on the fill's right edge
+---@field front Frame holds the liquid's front (its line and glow), faded on a full bar
+---@field effects? AddonEffects the effect switches the liquid was given
 ---@field fill Texture? the bar's fill, kept hidden while the liquid is live
 ---@field anchored Texture? the fill the mover is anchored to
 ---@field alpha number the alpha ElvUI gave the fill, given back when the liquid goes
@@ -166,7 +176,10 @@ ElvUI = nil
 ---@field units table<string, AddonUnitSettings>
 ---@field data table<string, AddonBarSettings>
 ---@field power table<string, string> the look per power type token
----@field effects AddonEffects
+---@field effects AddonEffects the "custom" level's switches
+---@field levels table<string, string> the level per group size: "party", "raid", "bigRaid"
+---@field bigRaid number raids of more members than this are big raids
+---@field fadeFront boolean
 
 ---Development screenshots' saved data (Dev.lua), in ElvUI's global data.
 ---@class AddonDevData

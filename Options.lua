@@ -107,16 +107,74 @@ end
 -- Smooth Animated Bars' effect switches, in its order.
 local EFFECTS = { "waves", "swirl", "bubbles", "sparkles", "ambient", "lightning" }
 
+---The level per group size and how big a big raid is, as a box.
 ---@return table
-local function EffectsTab()
+local function LevelsBox()
+    local levels = {}
+    for _, key in ipairs(ns.levelOrder) do
+        levels[key] = L["LEVEL_" .. key]
+    end
+    local args = {
+        size = {
+            type = "range",
+            order = 10,
+            name = L.BIG_RAID_SIZE,
+            min = 6,
+            max = 40,
+            step = 1,
+            ---@return number
+            get = function()
+                return ns.db().bigRaid
+            end,
+            ---@param _ table AceConfig's info
+            ---@param value number
+            set = function(_, value)
+                ns.db().bigRaid = value
+                ns.ApplyAll()
+            end,
+        },
+    }
+    for order, group in ipairs(ns.groupOrder) do
+        args[group] = {
+            type = "select",
+            order = order,
+            name = L["GROUP_" .. group],
+            values = levels,
+            sorting = ns.levelOrder,
+        }
+    end
+    return {
+        type = "group",
+        inline = true,
+        order = 1,
+        name = L.LEVELS,
+        ---@param info string[]
+        ---@return string
+        get = function(info)
+            return ns.db().levels[info[#info]]
+        end,
+        ---@param info string[]
+        ---@param value string
+        set = function(info, value)
+            ns.db().levels[info[#info]] = value
+            ns.ApplyAll()
+        end,
+        args = args,
+    }
+end
+
+---The custom level's switches, as a box.
+---@return table
+local function CustomBox()
     local args = {}
     for order, key in ipairs(EFFECTS) do
         args[key] = { type = "toggle", order = order, name = L[key] }
     end
     return {
         type = "group",
-        order = 4,
-        name = L.EFFECTS,
+        inline = true,
+        order = 3,
+        name = L.LEVEL_custom,
         ---@param info string[]
         ---@return boolean
         get = function(info)
@@ -129,6 +187,35 @@ local function EffectsTab()
             ns.ApplyAll()
         end,
         args = args,
+    }
+end
+
+---@return table
+local function EffectsTab()
+    return {
+        type = "group",
+        order = 4,
+        name = L.EFFECTS,
+        args = {
+            levels = LevelsBox(),
+            fadeFront = {
+                type = "toggle",
+                order = 2,
+                width = "full",
+                name = L.FADE_FRONT,
+                desc = L.FADE_FRONT_DESC,
+                ---@return boolean
+                get = function()
+                    return ns.db().fadeFront
+                end,
+                ---@param _ table AceConfig's info
+                ---@param value boolean
+                set = function(_, value)
+                    ns.db().fadeFront = value
+                end,
+            },
+            custom = CustomBox(),
+        },
     }
 end
 

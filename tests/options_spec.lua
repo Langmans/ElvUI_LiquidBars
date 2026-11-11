@@ -53,12 +53,34 @@ describe("the options", function()
         assert.are.equal("fire", client:db().power.RAGE)
     end)
 
-    it("switch the effects on every liquid", function()
+    it("switch the custom level's effects on every liquid", function()
         local client, args = options()
-        local effects = args.effects
-        assert.is_true(effects.get({ "lightning" }))
-        effects.set({ "lightning" }, false)
+        local custom = args.effects.args.custom
+        assert.is_true(custom.get({ "lightning" }))
+        custom.set({ "lightning" }, false)
         assert.is_false(client:db().effects.lightning)
         assert.is_false(client:LiquidOn(client.frames.player.Health).opts.lightning)
+    end)
+
+    it("set the level per group size and the size of a big raid", function()
+        local client, args = options()
+        local levels = args.effects.args.levels
+        assert.are.equal("custom", levels.get({ "party" }))
+        assert.is_string(levels.args.party.values.gentle)
+        levels.set({ "party" }, "still")
+        assert.are.equal("still", client:db().levels.party)
+        assert.is_false(client:LiquidOn(client.frames.player.Health).opts.waves, "applied at once")
+        local size = levels.args.size
+        assert.are.equal(20, size.get())
+        size.set(nil, 10)
+        assert.are.equal(10, client:db().bigRaid)
+    end)
+
+    it("switch the fading front", function()
+        local client, args = options()
+        local fade = args.effects.args.fadeFront
+        assert.is_true(fade.get())
+        fade.set(nil, false)
+        assert.is_false(client:db().fadeFront)
     end)
 end)

@@ -11,6 +11,7 @@
 ---@field dev boolean? a copy straight from the repository: `--@debug@` blocks run (Dev.lua)
 ---@field noOptions boolean? ElvUI_Options not loaded
 ---@field noSecretCheck boolean? a client without issecretvalue, which hides nothing
+---@field noCurves boolean? a client without C_CurveUtil and the unit percent functions
 
 -- What the client returns for a value it hides (issecretvalue says so).
 SECRET = setmetatable({}, {
@@ -115,6 +116,58 @@ function NewClient(opts)
             client.timers[#client.timers + 1] = { at = client.now + delay, fn = fn }
         end,
     }
+    -- The group: client.group.raid and .members, as the tests set them.
+    client.group = { raid = false, members = 0 }
+    function IsInRaid()
+        return client.group.raid
+    end
+    function GetNumGroupMembers()
+        return client.group.members
+    end
+
+    -- Curves and the client's own percentages: client.percent[unit] = { health = 0..1, power = 0..1 },
+    -- full where not set. A client without curves (opts.noCurves) has neither.
+    Enum = { LuaCurveType = { Linear = 0 } }
+    client.percent = {}
+    if not opts.noCurves then
+        local Curve = {}
+        Curve.__index = Curve
+        function Curve:SetType(kind)
+            self.kind = kind
+        end
+        function Curve:AddPoint(x, y)
+            self.points[#self.points + 1] = { x, y }
+        end
+        ---Linear between the points, flat beyond them.
+        function Curve:Evaluate(x)
+            local points = self.points
+            if x <= points[1][1] then return points[1][2] end
+            for i = 2, #points do
+                local a, b = points[i - 1], points[i]
+                if x <= b[1] then return a[2] + (b[2] - a[2]) * (x - a[1]) / (b[1] - a[1]) end
+            end
+            return points[#points][2]
+        end
+        C_CurveUtil = {
+            CreateCurve = function()
+                return setmetatable({ points = {} }, Curve)
+            end,
+        }
+        local function percent(unit, kind, curve)
+            local p = client.percent[unit] and client.percent[unit][kind] or 1
+            if p == SECRET then return SECRET end
+            return curve and curve:Evaluate(p) or p
+        end
+        function UnitHealthPercent(unit, _, curve)
+            return percent(unit, "health", curve)
+        end
+        function UnitPowerPercent(unit, _, _, curve)
+            return percent(unit, "power", curve)
+        end
+    else
+        C_CurveUtil, UnitHealthPercent, UnitPowerPercent = nil, nil, nil
+    end
+
     function UnitPowerType(unit)
         local t = client.powerTypes[unit] or { 0, "MANA" }
         return t[1], t[2]
@@ -176,6 +229,12 @@ function NewClient(opts)
     end
     function Region:SetAlpha(a)
         self.alpha = a
+    end
+    function Region:SetParent(parent)
+        self.parent = parent
+    end
+    function Region:GetParent()
+        return self.parent
     end
     function Region:GetAlpha()
         return self.alpha
@@ -258,6 +317,13 @@ function NewClient(opts)
     function Frame:GetReverseFill()
         return self.reverse
     end
+    ---The bar's value and range: bar.value, bar.min, bar.max, half full where not set.
+    function Frame:GetValue()
+        return self.value or 50
+    end
+    function Frame:GetMinMaxValues()
+        return self.min or 0, self.max or 100
+    end
 
     client.allFrames = {}
     function CreateFrame(kind, _, parent)
@@ -297,6 +363,9 @@ function NewClient(opts)
             dt = 0,
             quiet = false,
         }, Liquid)
+        -- The front: the bright line's slices and the glow, as the real liquid makes them.
+        l.tips = { parent:CreateTexture(), parent:CreateTexture() }
+        l.glow = parent:CreateTexture()
         client.liquids[#client.liquids + 1] = l
         return l
     end

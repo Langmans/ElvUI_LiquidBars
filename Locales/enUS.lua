@@ -49,4 +49,18 @@ L.sparkles = "Sparkles"
 L.ambient = "Ambient particles"
 L.lightning = "Lightning"
 
+-- The Effects tab: how much the liquids do per group size, Smooth Animated Bars' three levels or the
+-- switches above, and the fading front.
+L.LEVELS = "By group size"
+L.GROUP_party = "Solo and party"
+L.GROUP_raid = "Raid"
+L.GROUP_bigRaid = "Big raid"
+L.BIG_RAID_SIZE = "Big raid: more members than"
+L.LEVEL_custom = "Custom"
+L.LEVEL_full = "Everything"
+L.LEVEL_gentle = "Gentle: waves and swirl"
+L.LEVEL_still = "Still: a plain liquid"
+L.FADE_FRONT = "Fade the front on a full bar"
+L.FADE_FRONT_DESC = "The bright line and glow on the liquid's edge fade out over the last few percent, so a full bar has no line at its end."
+
 -- stylua: ignore end

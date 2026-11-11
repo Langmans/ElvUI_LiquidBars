@@ -20,7 +20,12 @@ ElvUI → Plugins → **Liquid Bars**:
 - **Data bars:** experience, reputation, pet experience.
 - **Power types:** the look of a power bar set to *By power type*, per mana, rage, energy, focus and
   astral power. A druid's bar changes with each form, with a splash.
-- **Effects:** Smooth Animated Bars' own switches, for every liquid.
+- **Effects:** how much the liquids do, per group size: solo and party, raid, and a big raid (more
+  members than you set, 20 by default). Each takes one of Smooth Animated Bars' levels
+  (*Everything*, *Gentle*: waves and swirl, *Still*: a plain liquid) or *Custom*, its own effect
+  switches. By default: Custom solo and in a party, Gentle in a raid, Still in a big raid; every
+  liquid changes level as the group does. *Fade the front on a full bar* (on) fades the bright line
+  on the liquid's edge over the last few percent.
 
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
@@ -70,6 +75,14 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   hide it again at once and keep ElvUI's alpha to give back on `Detach`. A hook on the bar's `OnSizeChanged` keeps
   the liquid as wide as the bar when ElvUI lays a frame out after configuring it, and gives a bar
   that had no size yet its liquid once it has one.
+- The front: the liquid's bright line and glow (`liquid.tips`, `liquid.glow`, Smooth Animated Bars'
+  fields) are moved onto a frame of their own (`holder.front`), since the liquid sets their alpha
+  every frame. Each frame the plugin sets that frame's alpha: 1, fading to 0 between 97% and 100%.
+  For a unit's health and power through `UnitHealthPercent`/`UnitPowerPercent` with a curve, which
+  gives a value the client may keep secret but `SetAlpha` takes; other bars by their own values.
+- Levels (`Core.lua`): `ns.levels` holds Smooth Animated Bars' three levels as fixed tables, the
+  custom level is the profile's `effects`. `ns.Effects()` picks by `IsInRaid`/`GetNumGroupMembers`;
+  `GROUP_ROSTER_UPDATE` hands every liquid its table (`SetOptions`) when it changed.
 - `Mirror.lua`: for a bar filled from the right. Smooth Animated Bars' liquid lays out every texture
   from its parent's left edge and asks the parent for nothing but `CreateTexture`. `ns.Mirror(frame)`
   stands in for the frame: its textures come out flipped (anchors from the right with offsets
