@@ -108,6 +108,7 @@ ElvUI = nil
 ---@field Shift fun(holder: AddonHolder)
 ---@field Attach fun(bar: StatusBar, kind: string, setting: string, owner: (AddonFrame|string)?): AddonHolder?
 ---@field ByUnit fun(holder: AddonHolder): boolean
+---@field ForgetLooks fun()
 ---@field Mirror fun(frame: Frame): AddonMirror
 ---@field Detach fun(bar: StatusBar)
 ---@field Live fun(): AddonHolder[]
@@ -135,9 +136,10 @@ ElvUI = nil
 ---@field owner (AddonFrame|string)? the frame it is on, or the unit it follows
 ---@field width number
 ---@field height number
----@field r? number|AddonSecret the bar's colour the look was made from
----@field g? number|AddonSecret
----@field b? number|AddonSecret
+---@field r? number the bar's colour the look was made from, in steps (Bar.lua's COLOR_STEPS)
+---@field g? number
+---@field b? number
+---@field look? AddonTheme the look the liquid has now
 ---@field check number seconds since the colour and fill were looked at
 ---@field idle number seconds a liquid at rest has waited
 ---@field splashAt number when the next splash may come

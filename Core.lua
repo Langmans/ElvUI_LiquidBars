@@ -91,8 +91,9 @@ function ns.AttachDataBars()
     end
 end
 
----Every bar as set now.
+---Every bar as set now, with looks made from the settings as they are now.
 function ns.ApplyAll()
+    ns.ForgetLooks()
     for _, frame in ipairs(E.oUF.objects) do
         ns.AttachFrame(frame)
     end

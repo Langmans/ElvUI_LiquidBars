@@ -1,9 +1,42 @@
 -- What a liquid looks like (Bar.lua): ElvUI's own colour for the bar, a Smooth Animated Bars theme,
 -- or for a power bar the theme set for its power type, so a druid's bar changes with each form.
 -- Themes that pick their colour per unit (Class Color) do so again when the unit changes. Movement
--- is scaled down for low bars, as the themes are made for an experience bar.
+-- is scaled down for low bars, as the themes are made for an experience bar. A look is made once per
+-- choice, colour (in steps of a twentieth) and height, and a liquid only gets a new one when it is
+-- another: Smooth Animated Bars' SetTheme builds a dozen tables and drops the liquid's particles.
 
 describe("the look", function()
+    it("is made once per colour and height, shared by bars", function()
+        local client = NewClient()
+        local player = client:LiquidOn(client.frames.player.Health)
+        local target = client:LiquidOn(client.frames.target.Health)
+        assert.are.equal(player.theme, target.theme)
+        assert.are_not.equal(player.theme, client:LiquidOn(client.frames.player.Power).theme, "another colour")
+    end)
+
+    it("follows ElvUI's colour in steps, not with each small change", function()
+        local client = NewClient()
+        local bar = client.frames.player.Health
+        local liquid = client:LiquidOn(bar)
+        local theme, sets = liquid.theme, liquid.sets
+        bar:SetStatusBarColor(0.11, 0.79, 0.1) -- ElvUI colouring by value, a little less health
+        client:Advance(0.5)
+        assert.are.equal(theme, liquid.theme)
+        assert.are.equal(sets, liquid.sets, "SetTheme not called")
+        bar:SetStatusBarColor(0.3, 0.6, 0.1)
+        client:Advance(0.5)
+        assert.are.same({ 0.3, 0.6, 0.1 }, liquid.theme.color)
+    end)
+
+    it("is made again after a change in the settings", function()
+        local client = NewClient()
+        local before = client:LiquidOn(client.frames.player.Health).theme
+        client.ns.ApplyAll()
+        client.ns.Detach(client.frames.player.Health)
+        client:Configure("player")
+        assert.are_not.equal(before, client:LiquidOn(client.frames.player.Health).theme)
+    end)
+
     it("is ElvUI's own colour by default, and follows it", function()
         local client = NewClient()
         local bar = client.frames.player.Health

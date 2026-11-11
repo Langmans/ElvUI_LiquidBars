@@ -17,6 +17,7 @@ local SPLASH_FROM = 8 -- px back from the front the splash's motes start
 -- the least share for a bar a dozen pixels high.
 local FULL_HEIGHT = 40
 local LEAST = 0.25
+local COLOR_STEPS = 20 -- ElvUI's colour is taken in steps of a twentieth per channel
 -- Smooth Animated Bars' defaults for the movement a theme scales.
 local PHYSICS = { amplitude = 10, crest = 7, ambient = 1, slosh = 0.18 }
 -- Where the liquid's frame sits on the fill: its front edge, by whether the bar fills from the right.
@@ -68,31 +69,69 @@ local function Choice(holder)
     return ns.db().power[token] or "elvui"
 end
 
----The liquid takes the bar's look: ElvUI's colour for the bar, or a theme. Only on a change of
----either, or when forced (a theme picking its colour by unit, for a new unit); a colour the client
----hides keeps the last one.
+-- Looks made so far, by choice or colour and by height, shared by every bar that needs the same
+-- one. Smooth Animated Bars' SetTheme builds a dozen tables and drops the liquid's particles, so a
+-- liquid only gets another look when it is another object. Cleared when the settings change.
+---@type table<string, AddonTheme>
+local looks = {}
+
+---Forgets every look made, so the next ones are made from the settings as they are now.
+function ns.ForgetLooks()
+    wipe(looks)
+end
+
+---A look from the cache, made the first time: from a theme, or without one from a colour in steps.
+---@param key string
+---@param height number
+---@param theme AddonTheme? the theme; none: the colour
+---@param r number the colour in steps of 1/COLOR_STEPS
+---@param g number
+---@param b number
+---@return AddonTheme
+local function Look(key, height, theme, r, g, b)
+    local look = looks[key]
+    if look then return look end
+    local Themes = ns.Themes
+    theme = theme or Themes.FromColor({ r / COLOR_STEPS, g / COLOR_STEPS, b / COLOR_STEPS }, Themes.Get(Themes.default))
+    look = ns.Scaled(theme, height)
+    looks[key] = look
+    return look
+end
+
+---The liquid takes the bar's look: ElvUI's colour for the bar (in steps of 1/COLOR_STEPS, so a bar
+---coloured by value does not get a new look with every bit of health), or a theme. Only on a change
+---of either, or when forced (a theme picking its colour by unit, for a new unit); a colour the
+---client hides keeps the last one.
 ---@param holder AddonHolder
 ---@param force boolean?
 function ns.Recolor(holder, force)
     local choice, Themes = Choice(holder), ns.Themes
     local theme = Themes.Get(choice ~= "elvui" and choice or Themes.default)
-    local r, g, b = holder.bar:GetStatusBarColor()
     local own = choice == "elvui" or theme.Resolve ~= nil
-    if own and ns.IsSecret(r) then return end
-    if not force and choice == holder.choice and (not own or (r == holder.r and g == holder.g and b == holder.b)) then
-        return
+    local r, g, b = 0, 0, 0
+    if own then
+        local cr, cg, cb = holder.bar:GetStatusBarColor()
+        if ns.IsSecret(cr) then return end
+        r = math.floor(cr * COLOR_STEPS + 0.5)
+        g = math.floor(cg * COLOR_STEPS + 0.5)
+        b = math.floor(cb * COLOR_STEPS + 0.5)
     end
+    if not force and choice == holder.choice and r == holder.r and g == holder.g and b == holder.b then return end
     holder.choice, holder.r, holder.g, holder.b = choice, r, g, b
-    -- ElvUI's colour, or a theme picking one by unit that has none for this unit: the bar's colour.
+    local height = math.floor(holder.height + 0.5)
     ---@type AddonTheme?
-    local look = theme
-    if choice == "elvui" then
-        look = nil
-    elseif theme.Resolve then
-        look = theme:Resolve(ns.UnitOf(holder))
+    local look
+    if choice ~= "elvui" and theme.Resolve then
+        -- A colour picked by unit is made anew, on a new unit only; none for this unit: the bar's.
+        local resolved = theme:Resolve(ns.UnitOf(holder))
+        look = resolved and ns.Scaled(resolved, height)
+    elseif choice ~= "elvui" then
+        look = Look(choice .. "@" .. height, height, theme, r, g, b)
     end
-    look = look or Themes.FromColor({ r, g, b }, Themes.Get(Themes.default))
-    holder.liquid:SetTheme(ns.Scaled(look, holder.height))
+    look = look or Look(r .. "," .. g .. "," .. b .. "@" .. height, height, nil, r, g, b)
+    if look == holder.look then return end
+    holder.look = look
+    holder.liquid:SetTheme(look)
 end
 
 ---Ripples the liquid's front and throws motes off it, at most every SPLASH_EVERY seconds unless
@@ -316,7 +355,7 @@ function ns.Attach(bar, kind, setting, owner)
     local fresh = not holder.live or reversed ~= holder.reversed or height ~= holder.height
     if reversed ~= holder.reversed then
         holder.liquid:HideAll()
-        holder.reversed, holder.anchored = reversed, nil
+        holder.reversed, holder.anchored, holder.look = reversed, nil, nil
         holder.liquid = LiquidFor(holder, reversed)
     end
     holder.kind, holder.setting, holder.owner = kind, setting, owner

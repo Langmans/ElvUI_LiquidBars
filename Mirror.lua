@@ -105,12 +105,15 @@ local function Forward(name)
     return f
 end
 
+-- A method found is kept on the texture, so the liquid's hundreds of calls a frame skip __index.
 local MirroredTexture = {
-    ---@param _ AddonMirrored
+    ---@param tex AddonMirrored
     ---@param name string
     ---@return function
-    __index = function(_, name)
-        return Flipped[name] or Forward(name)
+    __index = function(tex, name)
+        local f = Flipped[name] or Forward(name)
+        rawset(tex, name, f)
+        return f
     end,
 }
 

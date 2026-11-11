@@ -302,6 +302,7 @@ function NewClient(opts)
     end
     function Liquid:SetTheme(theme)
         self.theme = theme
+        self.sets = (self.sets or 0) + 1
     end
     function Liquid:SetSize(w, h)
         self.width, self.height = w, h

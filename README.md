@@ -88,6 +88,13 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
 Movement is scaled to the bar's height (`ns.Scaled`): the themes are made for an experience bar, so
 a bar under 40 px moves less, down to a quarter at 10 px.
 
+Looks are memoized (`Bar.lua`, `looks`): one per theme or colour and per height, shared by every
+bar that needs it, and ElvUI's colour is taken in steps of a twentieth per channel. A liquid only
+gets `SetTheme` when its look is another object, since Smooth Animated Bars' `SetTheme` builds a
+dozen tables and drops the liquid's sparks and lightning; a bar coloured by value would otherwise get
+one every quarter second. `ApplyAll` (any change in the settings) clears the cache. Class Color is
+made anew per unit, on a new unit only.
+
 ### Development
 
 `.lua\bin\lua.exe tests\check.lua` runs StyLua, WoW Lua LS (100% type coverage) and the busted
