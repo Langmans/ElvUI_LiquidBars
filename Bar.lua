@@ -107,9 +107,12 @@ function ns.Splash(holder, intensity, force)
     holder.liquid:Splash(intensity, holder.width - SPLASH_FROM, holder.width)
 end
 
--- The fills whose SetAlpha is hooked, each once.
+-- The fills whose SetAlpha and SetVertexColor are hooked, each once.
 ---@type table<Texture, boolean>
 local hooked = {}
+-- The calls that set a texture's alpha: SetVertexColor's fourth value does too, and that is how
+-- ElvUI makes a bar transparent (UF:SetStatusBarColor).
+local ALPHA_SETTERS = { "SetAlpha", "SetVertexColor" }
 
 ---Hides a bar's fill, keeping the alpha ElvUI gave it (a transparent bar has less than 1) to give back
 ---when the liquid goes.
@@ -130,7 +133,7 @@ end
 
 ---The bar's fill: hidden, and the liquid's frame on its edge. The bar may have swapped it. ElvUI sets
 ---the fill's alpha on its own updates (a transparent bar, target of target several times a second),
----so a hook hides it again at once, before it is drawn.
+---so hooks hide it again at once, before it is drawn, keeping the alpha it was given.
 ---@param holder AddonHolder
 local function Follow(holder)
     local fill = holder.bar:GetStatusBarTexture()
@@ -139,10 +142,12 @@ local function Follow(holder)
         if not hooked[fill] then
             hooked[fill] = true
             ---@param tex Texture
-            ---@param alpha number
-            hooksecurefunc(fill, "SetAlpha", function(tex, alpha)
-                Hide(holder, tex, alpha)
-            end)
+            local function Again(tex)
+                Hide(holder, tex, tex:GetAlpha())
+            end
+            for _, method in ipairs(ALPHA_SETTERS) do
+                hooksecurefunc(fill, method, Again)
+            end
         end
     end
     Hide(holder, fill, fill:GetAlpha())

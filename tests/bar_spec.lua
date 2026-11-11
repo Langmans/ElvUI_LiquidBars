@@ -176,6 +176,18 @@ describe("a liquid on a bar", function()
         assert.are.equal(0.5, bar.fill:GetAlpha(), "left alone without a liquid")
     end)
 
+    it("keeps the fill hidden when ElvUI colours it with an alpha, as it does a transparent bar", function()
+        local client = NewClient()
+        local bar = newBar(client)
+        client.ns.Attach(bar, "cast", "fire")
+        bar.fill:SetVertexColor(0.2, 0.4, 1, 0.7) -- UF:SetStatusBarColor on a transparent bar
+        assert.are.equal(0, bar.fill:GetAlpha(), "hidden again before it is drawn")
+        bar.fill:SetVertexColor(0.2, 0.4, 1)
+        assert.are.equal(0, bar.fill:GetAlpha())
+        client.ns.Detach(bar)
+        assert.are.equal(0.7, bar.fill:GetAlpha(), "ElvUI's own alpha back")
+    end)
+
     it("hides the fill also when its alpha is set to a value the client hides", function()
         local client = NewClient()
         local bar = newBar(client)

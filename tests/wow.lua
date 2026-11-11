@@ -180,6 +180,11 @@ function NewClient(opts)
     function Region:GetAlpha()
         return self.alpha
     end
+    ---As a texture's: a fourth value sets its alpha too (ElvUI's transparent bars).
+    function Region:SetVertexColor(r, g, b, a)
+        self.vertex = { r, g, b }
+        if a then self.alpha = a end
+    end
     function Region:SetTexCoord(...)
         self.texCoord = { ... }
     end
