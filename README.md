@@ -64,6 +64,11 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   its configure functions often for a bar that has its liquid already (a power bar showing or hiding
   re-configures its frame), so `Attach` only snaps a liquid and gives it a new theme when it went
   live, turned round or got another height: a new theme resets the liquid's swirl and particles.
+  ElvUI sets the fill's alpha on its own updates (a transparent bar gets less than 1; target of
+  target is polled several times a second), so a hook on the fill's `SetAlpha` hides it again at
+  once and keeps ElvUI's alpha to give back on `Detach`. A hook on the bar's `OnSizeChanged` keeps
+  the liquid as wide as the bar when ElvUI lays a frame out after configuring it, and gives a bar
+  that had no size yet its liquid once it has one.
 - `Mirror.lua`: for a bar filled from the right. Smooth Animated Bars' liquid lays out every texture
   from its parent's left edge and asks the parent for nothing but `CreateTexture`. `ns.Mirror(frame)`
   stands in for the frame: its textures come out flipped (anchors from the right with offsets

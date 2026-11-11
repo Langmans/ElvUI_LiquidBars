@@ -122,7 +122,9 @@ ElvUI = nil
 ---@field bar StatusBar
 ---@field clip Frame cuts the liquid off at the bar
 ---@field mover Frame one bar wide, on the fill's right edge
----@field fill Texture? the fill the mover is on
+---@field fill Texture? the bar's fill, kept hidden while the liquid is live
+---@field anchored Texture? the fill the mover is anchored to
+---@field alpha number the alpha ElvUI gave the fill, given back when the liquid goes
 ---@field liquid AddonLiquid the liquid for the way the bar fills now
 ---@field liquids table<boolean, AddonLiquid> each way's liquid, by reversed, made when first needed
 ---@field reversed boolean the bar fills from the right: the liquid is mirrored

@@ -139,6 +139,8 @@ function NewClient(opts)
     end
     function Region:SetSize(w, h)
         self.width, self.height = w, h
+        local script = self.scripts and self.scripts.OnSizeChanged
+        if script then script(self, w, h) end
     end
     function Region:SetWidth(w)
         self.width = w
@@ -203,6 +205,13 @@ function NewClient(opts)
     end
     function Frame:GetScript(script)
         return self.scripts[script]
+    end
+    function Frame:HookScript(script, fn)
+        local original = self.scripts[script]
+        self.scripts[script] = function(...)
+            if original then original(...) end
+            fn(...)
+        end
     end
     function Frame:RegisterEvent(event)
         self.registered[event] = true

@@ -107,13 +107,47 @@ function ns.Splash(holder, intensity, force)
     holder.liquid:Splash(intensity, holder.width - SPLASH_FROM, holder.width)
 end
 
----The bar's fill: hidden, and the liquid's frame on its edge. The bar may have swapped it.
+-- The fills whose SetAlpha is hooked, each once.
+---@type table<Texture, boolean>
+local hooked = {}
+
+---Hides a bar's fill, keeping the alpha ElvUI gave it (a transparent bar has less than 1) to give back
+---when the liquid goes.
+---@param holder AddonHolder
+---@param fill Texture
+---@param alpha number|AddonSecret
+local function Hide(holder, fill, alpha)
+    if not holder.live or fill ~= holder.fill then return end
+    if ns.IsSecret(alpha) then
+        fill:SetAlpha(0)
+        return
+    end
+    ---@cast alpha number
+    if alpha == 0 then return end
+    holder.alpha = alpha
+    fill:SetAlpha(0)
+end
+
+---The bar's fill: hidden, and the liquid's frame on its edge. The bar may have swapped it. ElvUI sets
+---the fill's alpha on its own updates (a transparent bar, target of target several times a second),
+---so a hook hides it again at once, before it is drawn.
 ---@param holder AddonHolder
 local function Follow(holder)
     local fill = holder.bar:GetStatusBarTexture()
-    if fill:GetAlpha() ~= 0 then fill:SetAlpha(0) end
-    if fill == holder.fill then return end
-    holder.fill = fill
+    if fill ~= holder.fill then
+        holder.fill = fill
+        if not hooked[fill] then
+            hooked[fill] = true
+            ---@param tex Texture
+            ---@param alpha number
+            hooksecurefunc(fill, "SetAlpha", function(tex, alpha)
+                Hide(holder, tex, alpha)
+            end)
+        end
+    end
+    Hide(holder, fill, fill:GetAlpha())
+    if fill == holder.anchored then return end
+    holder.anchored = fill
     local mover, top, bottom = holder.mover, unpack(EDGE[holder.reversed])
     mover:ClearAllPoints()
     mover:SetPoint(top, fill, top)
@@ -199,18 +233,38 @@ local function Build(bar, width, height, reversed)
         check = 0,
         idle = 0,
         splashAt = 0,
+        alpha = 1,
     } --[[@as AddonHolder]]
     holder.liquid = LiquidFor(holder, reversed)
     ns.holders[bar] = holder
     return holder
 end
 
----Takes a bar's liquid away: the bar's own fill back.
+-- What each bar was last asked to show, so a change of its size can bring it up to date: ElvUI lays
+-- out some frames (party, its config mode) after configuring them, and a bar without a size then
+-- gets its liquid once it has one. Detach forgets it.
+---@type table<StatusBar, string>
+local wantKind = {}
+---@type table<StatusBar, string>
+local wantSetting = {}
+---@type table<StatusBar, AddonFrame|string>
+local wantOwner = {}
+-- The bars whose OnSizeChanged is hooked, each once.
+---@type table<StatusBar, boolean>
+local sized = {}
+
 ---@param bar StatusBar
-function ns.Detach(bar)
+local function Resized(bar)
+    local kind = wantKind[bar]
+    if kind then ns.Attach(bar, kind, wantSetting[bar], wantOwner[bar]) end
+end
+
+---The liquid off the bar, the bar's own fill back at the alpha ElvUI last gave it.
+---@param bar StatusBar
+local function Drop(bar)
     local holder = ns.holders[bar]
     if not holder or not holder.live then return end
-    holder.live, holder.fill = false, nil
+    holder.live = false
     for i, other in ipairs(live) do
         if other == holder then
             table.remove(live, i)
@@ -219,23 +273,35 @@ function ns.Detach(bar)
     end
     holder.clip:Hide()
     holder.liquid:HideAll()
-    bar:GetStatusBarTexture():SetAlpha(1)
+    bar:GetStatusBarTexture():SetAlpha(holder.alpha)
     if #live == 0 then ns.driver:Hide() end
+end
+
+---Takes a bar's liquid away for good: its own fill back, and a new size no longer brings it back.
+---@param bar StatusBar
+function ns.Detach(bar)
+    wantKind[bar], wantSetting[bar], wantOwner[bar] = nil, nil, nil
+    Drop(bar)
 end
 
 ---Puts a liquid on a bar, or brings it up to date: its size, its look, the effects. ElvUI calls this
 ---often for a bar that has its liquid already (each configure), so a liquid is only snapped and given
----a new theme when something changed: it went live, turned round or got another height. A bar it
----cannot follow (vertical, without a size) keeps its own fill.
+---a new theme when something changed: it went live, turned round or got another height. It follows
+---the bar's size from then on. A bar it cannot follow (vertical, without a size) keeps its own fill.
 ---@param bar StatusBar
 ---@param kind string what the bar shows: "health", "power", "experience", ...
 ---@param setting string its look: "elvui", "power" or a theme's key
 ---@param owner (AddonFrame|string)? the frame it is on, or the unit it follows
 ---@return AddonHolder?
 function ns.Attach(bar, kind, setting, owner)
+    wantKind[bar], wantSetting[bar], wantOwner[bar] = kind, setting, owner
+    if not sized[bar] then
+        sized[bar] = true
+        bar:HookScript("OnSizeChanged", Resized)
+    end
     local width, height = bar:GetWidth(), bar:GetHeight()
     if bar:GetOrientation() ~= "HORIZONTAL" or not (Usable(width) and Usable(height)) then
-        ns.Detach(bar)
+        Drop(bar)
         return nil
     end
     ---@cast width number
@@ -245,7 +311,7 @@ function ns.Attach(bar, kind, setting, owner)
     local fresh = not holder.live or reversed ~= holder.reversed or height ~= holder.height
     if reversed ~= holder.reversed then
         holder.liquid:HideAll()
-        holder.reversed, holder.fill = reversed, nil
+        holder.reversed, holder.anchored = reversed, nil
         holder.liquid = LiquidFor(holder, reversed)
     end
     holder.kind, holder.setting, holder.owner = kind, setting, owner
@@ -254,14 +320,14 @@ function ns.Attach(bar, kind, setting, owner)
     local liquid = holder.liquid
     liquid:SetSize(width + ROOM, height)
     liquid:SetOptions(ns.db().effects)
-    Follow(holder)
-    if fresh then liquid:Snap(width) end
     if not holder.live then
         holder.live = true
         live[#live + 1] = holder
         holder.clip:Show()
         ns.driver:Show()
     end
+    Follow(holder)
+    if fresh then liquid:Snap(width) end
     ns.Recolor(holder, fresh)
     return holder
 end
