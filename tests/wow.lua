@@ -178,6 +178,15 @@ function NewClient(opts)
     function Region:GetAlpha()
         return self.alpha
     end
+    function Region:SetTexCoord(...)
+        self.texCoord = { ... }
+    end
+    function Region:SetGradient(orientation, from, to)
+        self.gradient = { orientation, from, to }
+    end
+    function Region:SetRotation(radians)
+        self.rotation = radians
+    end
 
     local function NewRegion(kind, parent)
         return setmetatable(

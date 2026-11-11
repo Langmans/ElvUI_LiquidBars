@@ -6,7 +6,7 @@ local L = LibStub("AceLocale-3.0"):NewLocale(addon, "enUS", true)
 
 -- ElvUI's options: the plugin's page in the side bar and its text.
 L.OPTIONS = "Liquid Bars"
-L.OPTIONS_DESC = "Smooth Animated Bars' liquid in ElvUI's bars. Only its files are used: switch off its own bars and nameplates (/sab), which ElvUI hides anyway, and it costs nothing. Vertical bars and bars filled from the right keep ElvUI's fill."
+L.OPTIONS_DESC = "Smooth Animated Bars' liquid in ElvUI's bars. Only its files are used: switch off its own bars and nameplates (/sab), which ElvUI hides anyway, and it costs nothing. On a bar filled from the right the liquid flows the other way; vertical bars keep ElvUI's fill."
 
 -- The look of a bar: ElvUI's colour, by power type, or one of Smooth Animated Bars' themes.
 L.THEME = "Look"

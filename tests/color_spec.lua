@@ -91,6 +91,27 @@ describe("the look", function()
         assert.are.same({ 0.6, 0.2, 1 }, liquid.theme.color)
     end)
 
+    it("of a theme that does not pick by unit stays when the unit changes", function()
+        local client = NewClient()
+        local liquid = client:LiquidOn(client.frames.player.Health)
+        local theme = liquid.theme
+        client:Fire("PLAYER_TARGET_CHANGED"):Fire("GROUP_ROSTER_UPDATE")
+        assert.are.equal(theme, liquid.theme, "no new theme, which would reset the liquid")
+    end)
+
+    it("by class colour picks again for the target's target, not for every unit's", function()
+        local client = NewClient()
+        client:db().units.targettarget.health.theme = "class"
+        client:Configure("targettarget")
+        local liquid = client:LiquidOn(client.frames.targettarget.Health)
+        local theme = liquid.theme
+        client:Fire("UNIT_TARGET", "nameplate3")
+        assert.are.equal(theme, liquid.theme, "a mob in the crowd changed target")
+        client.classColors.targettarget = { 0.6, 0.2, 1 }
+        client:Fire("UNIT_TARGET", "target")
+        assert.are.same({ 0.6, 0.2, 1 }, liquid.theme.color)
+    end)
+
     it("moves less on a low bar", function()
         local client = NewClient()
         client:db().units.player.health.theme = "luxthos"

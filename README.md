@@ -25,7 +25,8 @@ ElvUI → Plugins → **Liquid Bars**:
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
 
-Vertical bars and bars filled from the right keep ElvUI's own fill.
+On a bar filled from the right (ElvUI's *Reverse Fill*, as on a mirrored target frame) the liquid
+flows from right to left. Vertical bars keep ElvUI's own fill.
 
 ---
 
@@ -59,7 +60,17 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   liquid; the plugin never reads the value, which WoW: Forever hides in combat. A clip frame cuts it
   off at the bar. `ns.Detach(bar)` gives the fill back. One driver frame moves every liquid each
   frame, skipping bars that do not show, a liquid at rest at 30 frames a second only; it hides when
-  there is no liquid. Every quarter second it looks at the bar's colour and fill again.
+  there is no liquid. Every quarter second it looks at the bar's colour and fill again. ElvUI calls
+  its configure functions often for a bar that has its liquid already (a power bar showing or hiding
+  re-configures its frame), so `Attach` only snaps a liquid and gives it a new theme when it went
+  live, turned round or got another height: a new theme resets the liquid's swirl and particles.
+- `Mirror.lua`: for a bar filled from the right. Smooth Animated Bars' liquid lays out every texture
+  from its parent's left edge and asks the parent for nothing but `CreateTexture`. `ns.Mirror(frame)`
+  stands in for the frame: its textures come out flipped (anchors from the right with offsets
+  negated, texture coordinates and horizontal gradients swapped, rotations reversed), every other
+  call goes to the real texture. Such a bar gets its own liquid through the mirror, on the fill's
+  left edge. Should Smooth Animated Bars start anchoring from elsewhere than the left, the mirrored
+  liquid would show in the wrong place (no error); `tests/mirror_spec.lua` pins down what is flipped.
 - `Core.lua`: the ElvUI module. Settings in ElvUI's profile; hooks after `UF:Configure_HealthBar`,
   `UF:Configure_Power` and `DB:UpdateAll`; events: a change of health, power, experience, reputation
   or pet experience splashes the bar's liquid (at most every 0.15 s), `UNIT_DISPLAYPOWER` changes a

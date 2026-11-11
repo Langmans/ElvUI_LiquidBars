@@ -11,6 +11,7 @@ Borrow.lua
 ..\SmoothAnimatedBars\Themes.lua
 ..\SmoothAnimatedBars\Liquid.lua
 Core.lua
+Mirror.lua
 Bar.lua
 Dev.lua
 Options.lua

@@ -162,9 +162,15 @@ function M:UNIT_DISPLAYPOWER(_, unit)
     end
 end
 
-function M:NewUnit()
+---Another unit on a frame: every look checked (a power type may differ), and a theme picking its
+---colour by unit made again. UNIT_TARGET counts for the target only (its target of target); it
+---fires for every unit that changes target.
+---@param event string
+---@param unit string?
+function M:NewUnit(event, unit)
+    if event == "UNIT_TARGET" and unit ~= "target" then return end
     for _, holder in ipairs(ns.Live()) do
-        ns.Recolor(holder, true)
+        ns.Recolor(holder, ns.ByUnit(holder))
     end
 end
 

@@ -1,7 +1,8 @@
 -- The liquid on one status bar (Bar.lua), whatever bar it is: ElvUI's unit frame bars and data
 -- bars here, a cast bar later. The bar's own fill turns invisible but keeps its size, and the liquid
--- rides on its right edge, so ElvUI's own value and smoothing move it. Bars it cannot follow
--- (vertical, filled from the right, no size yet) keep their own fill.
+-- rides on its edge, so ElvUI's own value and smoothing move it. A bar filled from the right gets a
+-- mirrored liquid on the fill's left edge. Bars it cannot follow (vertical, no size yet) keep their
+-- own fill.
 
 ---A plain horizontal status bar of the test client.
 local function newBar(client, w, h)
@@ -45,16 +46,61 @@ describe("a liquid on a bar", function()
         assert.are.equal(24, again.liquid.height)
     end)
 
+    it("stays as it is when ElvUI configures the bar again", function()
+        local client = NewClient()
+        local bar = newBar(client)
+        local holder = client.ns.Attach(bar, "cast", "fire")
+        local liquid, theme = holder.liquid, holder.liquid.theme
+        liquid.edge = 50
+        client.ns.Attach(bar, "cast", "fire")
+        assert.are.equal(theme, liquid.theme, "no new theme, which would reset the liquid")
+        assert.are.equal(50, liquid.edge, "not snapped")
+        client.ns.Attach(bar, "cast", "luxthos")
+        assert.are.equal("Luxthos", liquid.theme.name, "a new look set: taken")
+        bar:SetSize(120, 30)
+        local before = liquid.theme
+        client.ns.Attach(bar, "cast", "luxthos")
+        assert.are_not.equal(before, liquid.theme, "a new height: movement scaled again")
+    end)
+
     it("leaves a bar it cannot follow to its own fill", function()
         local client = NewClient()
-        local vertical, reversed, unsized = newBar(client), newBar(client), newBar(client, 0, 0)
+        local vertical, unsized = newBar(client), newBar(client, 0, 0)
         vertical.orientation = "VERTICAL"
-        reversed.reverse = true
         local secret = newBar(client, SECRET, 20)
-        for _, bar in ipairs({ vertical, reversed, unsized, secret }) do
+        for _, bar in ipairs({ vertical, unsized, secret }) do
             assert.is_nil(client.ns.Attach(bar, "cast", "fire"))
             assert.are.equal(1, bar.fill:GetAlpha())
         end
+    end)
+
+    it("is mirrored on a bar filled from the right, riding on the fill's left edge", function()
+        local client = NewClient()
+        local bar = newBar(client)
+        bar.reverse = true
+        local holder = client.ns.Attach(bar, "cast", "fire")
+        assert.are.equal(0, bar.fill:GetAlpha())
+        assert.are.same({ "TOPLEFT", bar.fill, "TOPLEFT" }, holder.mover.points[1])
+        assert.are.same({ "BOTTOMLEFT", bar.fill, "BOTTOMLEFT" }, holder.mover.points[2])
+        assert.are.equal(holder.mover, holder.liquid.parent.real, "a mirror of the frame")
+    end)
+
+    it("turns round with the bar, each way's liquid made once", function()
+        local client = NewClient()
+        local bar = newBar(client)
+        local holder = client.ns.Attach(bar, "cast", "fire")
+        local plain = holder.liquid
+        bar.reverse = true
+        client.ns.Attach(bar, "cast", "fire")
+        local mirrored = holder.liquid
+        assert.are_not.equal(plain, mirrored)
+        assert.is_true(plain.hidden, "the other way's liquid hidden")
+        assert.are.same({ "TOPLEFT", bar.fill, "TOPLEFT" }, holder.mover.points[1])
+        assert.are.equal("Fire", mirrored.theme.name, "with the bar's look")
+        bar.reverse = false
+        client.ns.Attach(bar, "cast", "fire")
+        assert.are.equal(plain, holder.liquid)
+        assert.are.same({ "TOPRIGHT", bar.fill, "TOPRIGHT" }, holder.mover.points[1])
     end)
 
     it("works on a client that hides nothing", function()

@@ -1,0 +1,74 @@
+-- A mirror for a frame (Mirror.lua): Smooth Animated Bars' liquid only flows left to right, laying
+-- out every texture from its parent's left edge. Given a mirror as its parent, its textures come out
+-- flipped: anchors from the right, offsets negated, texture coordinates and horizontal gradients
+-- swapped, rotations reversed. Everything else goes through untouched.
+
+local function mirrored()
+    local client = NewClient()
+    local frame = CreateFrame("Frame", nil, UIParent)
+    frame:SetSize(100, 20)
+    local mirror = client.ns.Mirror(frame)
+    return mirror, frame, mirror:CreateTexture(nil, "ARTWORK")
+end
+
+describe("a mirror", function()
+    it("passes the frame's own methods through", function()
+        local mirror, frame = mirrored()
+        assert.are.equal(frame, mirror.real)
+        assert.are.equal(100, mirror:GetWidth())
+        assert.are.equal(mirror.GetWidth, mirror.GetWidth, "made once")
+    end)
+
+    it("anchors its textures from the right", function()
+        local mirror, frame, tex = mirrored()
+        tex:SetPoint("TOPLEFT", mirror, "TOPLEFT", 12, -3)
+        tex:SetPoint("CENTER", mirror, "LEFT", 40, 0)
+        tex:SetPoint("CENTER", mirror, "BOTTOMLEFT", 7, 5)
+        assert.are.same({ "TOPRIGHT", frame, "TOPRIGHT", -12, -3 }, tex.real.points[1])
+        assert.are.same({ "CENTER", frame, "RIGHT", -40, 0 }, tex.real.points[2])
+        assert.are.same({ "CENTER", frame, "BOTTOMRIGHT", -7, 5 }, tex.real.points[3])
+    end)
+
+    it("flips the short forms of an anchor too", function()
+        local mirror, frame, tex = mirrored()
+        tex:SetPoint("BOTTOMLEFT")
+        tex:SetPoint("LEFT", 4, 2)
+        local other = mirror:CreateTexture()
+        tex:SetPoint("RIGHT", other, "LEFT")
+        assert.are.same({ "BOTTOMRIGHT" }, tex.real.points[1])
+        assert.are.same({ "RIGHT", -4, 2 }, tex.real.points[2])
+        assert.are.same({ "LEFT", other.real, "RIGHT", -0, 0 }, tex.real.points[3], "a mirrored texture unwrapped")
+        assert.is_table(frame)
+    end)
+
+    it("swaps texture coordinates left and right", function()
+        local _, _, tex = mirrored()
+        tex:SetTexCoord(0.1, 0.6, 0, 1)
+        assert.are.same({ 0.6, 0.1, 0, 1 }, tex.real.texCoord)
+        tex:SetTexCoord(1, 2, 3, 4, 5, 6, 7, 8)
+        assert.are.same({ 5, 6, 7, 8, 1, 2, 3, 4 }, tex.real.texCoord, "corners: the right ones to the left")
+    end)
+
+    it("swaps a horizontal gradient's colours, not a vertical one's", function()
+        local _, _, tex = mirrored()
+        local a, b = { r = 1 }, { r = 0 }
+        tex:SetGradient("HORIZONTAL", a, b)
+        assert.are.same({ "HORIZONTAL", b, a }, tex.real.gradient)
+        tex:SetGradient("VERTICAL", a, b)
+        assert.are.same({ "VERTICAL", a, b }, tex.real.gradient)
+    end)
+
+    it("reverses a rotation", function()
+        local _, _, tex = mirrored()
+        tex:SetRotation(0.5)
+        assert.are.equal(-0.5, tex.real.rotation)
+    end)
+
+    it("passes the rest of a texture's methods through", function()
+        local _, _, tex = mirrored()
+        tex:SetAlpha(0.4)
+        assert.are.equal(0.4, tex:GetAlpha())
+        tex:Hide()
+        assert.is_false(tex.real:IsShown())
+    end)
+end)

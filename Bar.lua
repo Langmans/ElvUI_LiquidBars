@@ -1,8 +1,9 @@
 -- The liquid on one status bar, whatever bar it is. The bar's own fill turns invisible but keeps
 -- its size, so ElvUI's value and its smoothing still move it; a frame one bar wide rides on the
--- fill's right edge and holds Smooth Animated Bars' liquid, always full on that frame. A clip frame
--- over the bar cuts the liquid off at the bar. One driver moves every liquid each frame. How it fits
--- together: README.md, technical part.
+-- fill's front edge and holds Smooth Animated Bars' liquid, always full on that frame. On a bar
+-- filled from the right that is the fill's left edge, and the liquid is drawn through a mirror
+-- (Mirror.lua). A clip frame over the bar cuts the liquid off at the bar. One driver moves every
+-- liquid each frame. How it fits together: README.md, technical part.
 
 local _, ns = ... ---@type string, AddonNamespace
 
@@ -18,6 +19,9 @@ local FULL_HEIGHT = 40
 local LEAST = 0.25
 -- Smooth Animated Bars' defaults for the movement a theme scales.
 local PHYSICS = { amplitude = 10, crest = 7, ambient = 1, slosh = 0.18 }
+-- Where the liquid's frame sits on the fill: its front edge, by whether the bar fills from the right.
+---@type table<boolean, FramePoint[]>
+local EDGE = { [false] = { "TOPRIGHT", "BOTTOMRIGHT" }, [true] = { "TOPLEFT", "BOTTOMLEFT" } }
 
 ---@type table<StatusBar, AddonHolder>
 ns.holders = {}
@@ -110,10 +114,10 @@ local function Follow(holder)
     if fill:GetAlpha() ~= 0 then fill:SetAlpha(0) end
     if fill == holder.fill then return end
     holder.fill = fill
-    local mover = holder.mover
+    local mover, top, bottom = holder.mover, unpack(EDGE[holder.reversed])
     mover:ClearAllPoints()
-    mover:SetPoint("TOPRIGHT", fill, "TOPRIGHT")
-    mover:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+    mover:SetPoint(top, fill, top)
+    mover:SetPoint(bottom, fill, bottom)
 end
 
 ---One liquid's step: its look and fill looked at now and then, the liquid moved on, a liquid at
@@ -153,26 +157,40 @@ ns.driver = CreateFrame("Frame")
 ns.driver:Hide()
 ns.driver:SetScript("OnUpdate", OnUpdate)
 
+---A bar's liquid for one direction, made the first time: drawn on its frame, or through a mirror of
+---it for a bar filled from the right.
+---@param holder AddonHolder
+---@param reversed boolean
+---@return AddonLiquid
+local function LiquidFor(holder, reversed)
+    local liquid = holder.liquids[reversed]
+    if liquid then return liquid end
+    local parent = reversed and ns.Mirror(holder.mover) or holder.mover
+    local Themes = ns.Themes
+    liquid = ns.Liquid.New(parent, holder.width + ROOM, holder.height, Themes.Get(Themes.default), ns.db().effects)
+    holder.liquids[reversed] = liquid
+    return liquid
+end
+
 ---The frames and the liquid for a bar, made once.
 ---@param bar StatusBar
 ---@param width number
 ---@param height number
+---@param reversed boolean
 ---@return AddonHolder
-local function Build(bar, width, height)
+local function Build(bar, width, height, reversed)
     local clip = CreateFrame("Frame", nil, bar)
     clip:SetFrameLevel(bar:GetFrameLevel())
     clip:SetAllPoints(bar)
     clip:SetClipsChildren(true)
     clip:Hide()
-    local mover = CreateFrame("Frame", nil, clip)
-    local Themes = ns.Themes
-    local liquid = ns.Liquid.New(mover, width + ROOM, height, Themes.Get(Themes.default), ns.db().effects)
     ---@type AddonHolder
     local holder = {
         bar = bar,
         clip = clip,
-        mover = mover,
-        liquid = liquid,
+        mover = CreateFrame("Frame", nil, clip),
+        liquids = {},
+        reversed = reversed,
         live = false,
         setting = "elvui",
         kind = "",
@@ -181,7 +199,8 @@ local function Build(bar, width, height)
         check = 0,
         idle = 0,
         splashAt = 0,
-    }
+    } --[[@as AddonHolder]]
+    holder.liquid = LiquidFor(holder, reversed)
     ns.holders[bar] = holder
     return holder
 end
@@ -204,8 +223,10 @@ function ns.Detach(bar)
     if #live == 0 then ns.driver:Hide() end
 end
 
----Puts a liquid on a bar, or brings it up to date: its size, its look, the effects. A bar it cannot
----follow (vertical, filled from the right, without a size) keeps its own fill.
+---Puts a liquid on a bar, or brings it up to date: its size, its look, the effects. ElvUI calls this
+---often for a bar that has its liquid already (each configure), so a liquid is only snapped and given
+---a new theme when something changed: it went live, turned round or got another height. A bar it
+---cannot follow (vertical, without a size) keeps its own fill.
 ---@param bar StatusBar
 ---@param kind string what the bar shows: "health", "power", "experience", ...
 ---@param setting string its look: "elvui", "power" or a theme's key
@@ -213,29 +234,44 @@ end
 ---@return AddonHolder?
 function ns.Attach(bar, kind, setting, owner)
     local width, height = bar:GetWidth(), bar:GetHeight()
-    if bar:GetOrientation() ~= "HORIZONTAL" or bar:GetReverseFill() or not (Usable(width) and Usable(height)) then
+    if bar:GetOrientation() ~= "HORIZONTAL" or not (Usable(width) and Usable(height)) then
         ns.Detach(bar)
         return nil
     end
     ---@cast width number
     ---@cast height number
-    local holder = ns.holders[bar] or Build(bar, width, height)
+    local reversed = bar:GetReverseFill() and true or false
+    local holder = ns.holders[bar] or Build(bar, width, height, reversed)
+    local fresh = not holder.live or reversed ~= holder.reversed or height ~= holder.height
+    if reversed ~= holder.reversed then
+        holder.liquid:HideAll()
+        holder.reversed, holder.fill = reversed, nil
+        holder.liquid = LiquidFor(holder, reversed)
+    end
     holder.kind, holder.setting, holder.owner = kind, setting, owner
     holder.width, holder.height = width, height
     holder.mover:SetWidth(width)
-    holder.liquid:SetSize(width + ROOM, height)
-    holder.liquid:SetOptions(ns.db().effects)
-    holder.fill = nil
+    local liquid = holder.liquid
+    liquid:SetSize(width + ROOM, height)
+    liquid:SetOptions(ns.db().effects)
     Follow(holder)
+    if fresh then liquid:Snap(width) end
     if not holder.live then
         holder.live = true
         live[#live + 1] = holder
         holder.clip:Show()
-        holder.liquid:Snap(width)
         ns.driver:Show()
     end
-    ns.Recolor(holder, true)
+    ns.Recolor(holder, fresh)
     return holder
+end
+
+---Whether a bar's look picks its colour by unit (Class Color), so a new unit needs a new theme.
+---@param holder AddonHolder
+---@return boolean
+function ns.ByUnit(holder)
+    local choice = holder.choice
+    return choice ~= nil and choice ~= "elvui" and ns.Themes.Get(choice).Resolve ~= nil
 end
 
 ---Every bar with a liquid, for the events that stir them.

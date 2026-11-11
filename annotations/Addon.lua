@@ -67,6 +67,21 @@ ElvUI = nil
 ---@class AddonLiquidClass
 ---@field New fun(parent: Frame, width: number, height: number, theme: AddonTheme, options: AddonEffects): AddonLiquid
 
+---A frame seen through a mirror (Mirror.lua): its textures are made mirrored, its other methods are
+---the frame's.
+---@class AddonMirror: Frame
+---@field real Frame
+
+---A texture made through a mirror: the calls that place it flipped, the rest passed on.
+---@class AddonMirrored: Texture
+---@field real Texture
+
+---Whatever a passed-on call takes or gives back.
+---@alias AddonValue number|string|boolean|table|nil
+
+---A method a mirror or a mirrored texture passes on to the real region.
+---@alias AddonForward fun(self: table, ...: AddonValue): AddonValue
+
 ---What Themes.lua asks of Smooth Animated Bars' core, stood in for by Borrow.lua.
 ---@class AddonBorrowedCore
 ---@field Get fun(setting: string): nil
@@ -92,6 +107,8 @@ ElvUI = nil
 ---@field Splash fun(holder: AddonHolder, intensity: number, force: boolean?)
 ---@field Shift fun(holder: AddonHolder)
 ---@field Attach fun(bar: StatusBar, kind: string, setting: string, owner: (AddonFrame|string)?): AddonHolder?
+---@field ByUnit fun(holder: AddonHolder): boolean
+---@field Mirror fun(frame: Frame): AddonMirror
 ---@field Detach fun(bar: StatusBar)
 ---@field Live fun(): AddonHolder[]
 ---@field AttachFrame fun(frame: AddonFrame)
@@ -106,7 +123,9 @@ ElvUI = nil
 ---@field clip Frame cuts the liquid off at the bar
 ---@field mover Frame one bar wide, on the fill's right edge
 ---@field fill Texture? the fill the mover is on
----@field liquid AddonLiquid
+---@field liquid AddonLiquid the liquid for the way the bar fills now
+---@field liquids table<boolean, AddonLiquid> each way's liquid, by reversed, made when first needed
+---@field reversed boolean the bar fills from the right: the liquid is mirrored
 ---@field live boolean
 ---@field kind string what the bar shows: "health", "power", "experience", ...
 ---@field setting string its look as set: "elvui", "power" or a theme's key
