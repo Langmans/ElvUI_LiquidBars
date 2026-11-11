@@ -96,6 +96,12 @@ function NewClient(opts)
         end
         return t
     end
+    function tContains(t, value)
+        for _, v in ipairs(t) do
+            if v == value then return true end
+        end
+        return false
+    end
     function hooksecurefunc(object, method, hook)
         local original = object[method]
         object[method] = function(...)

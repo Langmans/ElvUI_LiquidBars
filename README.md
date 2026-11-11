@@ -82,6 +82,8 @@ fakes Smooth Animated Bars' two files, since they live in the game folder only.
 A copy straight from the repository has a **Dev screenshots** switch at the bottom of the plugin's
 page. Switched on, the first time a bar gets its liquid (`liquid: player health`,
 `liquid: experience`, ...) and the first time each power type comes with a change of form
-(`form: RAGE`), a grey chat line says which and a screenshot follows. Each kind once, kept in ElvUI's
-global data until *Forget the screenshots taken*; at most one every two seconds. The whole file is a
+(`form: RAGE`), a grey chat line says which and a screenshot follows. A bar counts when it gets its
+liquid, not each time ElvUI configures it again (it does so often: class bars, power, toggling a
+data bar). The kinds of one moment share one screenshot; one within two seconds of the last waits.
+Each kind once, kept in ElvUI's global data until *Forget the screenshots taken*. The whole file is a
 `--@debug@` block, so a release does not have it.

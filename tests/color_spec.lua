@@ -77,6 +77,20 @@ describe("the look", function()
         assert.are.same({ 0.1, 0.8, 0.1 }, liquid.theme.color, "a mob: the bar's own colour")
     end)
 
+    it("by class colour picks again on entering the world, for a frame configured without a unit", function()
+        local client = NewClient()
+        local frame = client.frames.target
+        frame.__unit = nil
+        client:db().units.target.health.theme = "class"
+        client:Configure("target")
+        local liquid = client:LiquidOn(frame.Health)
+        assert.are.same({ 0.1, 0.8, 0.1 }, liquid.theme.color, "no unit yet: the bar's colour")
+        frame.__unit = "target"
+        client.classColors.target = { 0.6, 0.2, 1 }
+        client:Fire("PLAYER_ENTERING_WORLD")
+        assert.are.same({ 0.6, 0.2, 1 }, liquid.theme.color)
+    end)
+
     it("moves less on a low bar", function()
         local client = NewClient()
         client:db().units.player.health.theme = "luxthos"

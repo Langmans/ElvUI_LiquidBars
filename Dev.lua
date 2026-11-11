@@ -1,9 +1,10 @@
 --@debug@
 -- Screenshots for development: the first time each kind of moment from the in-game checks happens
 -- (a bar getting its liquid, a change of form), a grey chat line says which, then one screenshot.
--- It hooks in like any other addon could. The whole file is a --@debug@ block, so only a copy
--- straight from the repository has it; off until switched on, English only (README > Screenshots
--- while testing in game).
+-- The kinds of one moment share a screenshot. A bar counts when it gets its liquid, not each time
+-- ElvUI configures it again. It hooks in like any other addon could. The whole file is a --@debug@
+-- block, so only a copy straight from the repository has it; off until switched on, English only
+-- (README > Screenshots while testing in game).
 
 local addon, ns = ... ---@type string, AddonNamespace
 local E, G = ElvUI[1], ElvUI[5]
@@ -11,6 +12,13 @@ local E, G = ElvUI[1], ElvUI[5]
 local SHOT_DELAY = 0.3 -- seconds for the game to draw what changed before the screenshot
 local SHOT_GAP = 2 -- seconds at least between two screenshots
 local lastShot = -SHOT_GAP
+-- The kinds noticed since the last screenshot, for the next one, and whether it is on its way.
+---@type string[]
+local pending = {}
+local flushing = false
+-- The bars that have their liquid, as far as the screenshots have seen.
+---@type table<StatusBar, boolean>
+local seen = {}
 
 G[addon] = { dev = { on = false, shots = {} } }
 
@@ -24,16 +32,34 @@ local function TakeScreenshot()
     Screenshot()
 end
 
----One screenshot for a kind not shot yet, said in chat first. Within SHOT_GAP of the last one there
----is none, and the kind stays unmarked, so it is shot the next time.
----@param kind string
-local function Shoot(kind)
-    local dev = Dev()
-    if not dev.on or dev.shots[kind] or GetTime() - lastShot < SHOT_GAP then return end
-    dev.shots[kind] = true
-    print("|cff888888[" .. addon .. " dev] " .. kind .. "|r")
+---One screenshot for the kinds noticed, each said in chat first. Within SHOT_GAP of the last one it
+---waits for the gap to pass.
+local function Flush()
+    local wait = lastShot + SHOT_GAP - GetTime()
+    if wait > 0 then
+        C_Timer.After(wait, Flush)
+        return
+    end
+    flushing = false
+    local shots = Dev().shots
+    for _, kind in ipairs(pending) do
+        shots[kind] = true
+        print("|cff888888[" .. addon .. " dev] " .. kind .. "|r")
+    end
+    wipe(pending)
     lastShot = GetTime()
     C_Timer.After(SHOT_DELAY, TakeScreenshot)
+end
+
+---Notes a kind for the next screenshot, when switched on and not shot or noted yet.
+---@param kind string
+local function Notice(kind)
+    local dev = Dev()
+    if not dev.on or dev.shots[kind] or tContains(pending, kind) then return end
+    pending[#pending + 1] = kind
+    if flushing then return end
+    flushing = true
+    C_Timer.After(0, Flush)
 end
 
 ---@param bar StatusBar
@@ -42,15 +68,21 @@ end
 ---@param owner (AddonFrame|string)?
 hooksecurefunc(ns, "Attach", function(bar, kind, _, owner)
     local holder = ns.holders[bar]
-    if not (holder and holder.live) then return end
+    if not (holder and holder.live) or seen[bar] then return end
+    seen[bar] = true
     local frame = type(owner) == "table" and owner.unitframeType .. " " or ""
-    Shoot("liquid: " .. frame .. kind)
+    Notice("liquid: " .. frame .. kind)
+end)
+
+---@param bar StatusBar
+hooksecurefunc(ns, "Detach", function(bar)
+    seen[bar] = nil
 end)
 
 ---@param holder AddonHolder
 hooksecurefunc(ns, "Shift", function(holder)
     local _, token = UnitPowerType(ns.UnitOf(holder) or "player")
-    Shoot("form: " .. token)
+    Notice("form: " .. token)
 end)
 
 ---The switch and the forget button, a box on the plugin's page.

@@ -118,8 +118,16 @@ local KINDS = {
     UNIT_PET_EXPERIENCE = "petExperience",
 }
 local UNIT_EVENTS = { UNIT_HEALTH = true, UNIT_MAXHEALTH = true, UNIT_POWER_UPDATE = true, UNIT_MAXPOWER = true }
--- Events that put another unit on a frame: a theme picking its colour by unit picks again.
-local NEW_UNIT = { "PLAYER_TARGET_CHANGED", "PLAYER_FOCUS_CHANGED", "UNIT_PET", "UNIT_TARGET", "GROUP_ROSTER_UPDATE" }
+-- Events that put another unit on a frame: a theme picking its colour by unit picks again. ElvUI
+-- configures a frame before oUF gives it its unit, so entering the world counts too.
+local NEW_UNIT = {
+    "PLAYER_TARGET_CHANGED",
+    "PLAYER_FOCUS_CHANGED",
+    "UNIT_PET",
+    "UNIT_TARGET",
+    "GROUP_ROSTER_UPDATE",
+    "PLAYER_ENTERING_WORLD",
+}
 
 local M = E:NewModule(addon, "AceHook-3.0", "AceEvent-3.0")
 
