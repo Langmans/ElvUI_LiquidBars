@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: |cff1784d1ElvUI|r |cff4fc3ffLiquid Bars|r
+## Notes: Smooth Animated Bars' liquid on ElvUI's unit frame bars and data bars.
+## Author: Langmans
+## Version: @project-version@
+## RequiredDeps: ElvUI, SmoothAnimatedBars
+## X-License: MIT
+
+Locales\enUS.lua
+Borrow.lua
+..\SmoothAnimatedBars\Themes.lua
+..\SmoothAnimatedBars\Liquid.lua
+Core.lua
+Bar.lua
+Dev.lua
+Options.lua

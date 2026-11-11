@@ -1,0 +1,8 @@
+package-as: ElvUI_LiquidBars
+
+ignore:
+  - annotations
+  - coverage
+  - tests
+  - elvui_liquidbars-dev-1.rockspec
+  - stylua.toml
