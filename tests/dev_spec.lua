@@ -92,10 +92,20 @@ describe("development screenshots", function()
     end)
 
     it("are not there in a release", function()
+        _G[ADDON_NAME .. "Dev"] = nil
         local client = NewClient()
         reattach(client, "player"):Advance(3)
         assert.are.equal(0, client.screenshots)
         assert.is_nil(client.ns.DevOptions)
         assert.is_nil(client:LoadOptions().args.dev)
+        assert.is_nil(_G[ADDON_NAME .. "Dev"], "no global to look inside")
+    end)
+end)
+
+describe("the development global", function()
+    it("opens the plugin's namespace for /run probes, named from the folder", function()
+        local client = NewClient({ dev = true, name = "Tester" })
+        assert.are.equal(client.ns, TesterDev)
+        TesterDev = nil
     end)
 end)

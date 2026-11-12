@@ -22,6 +22,9 @@ local seen = {}
 
 G[addon] = { dev = { on = false, shots = {} } }
 
+-- The namespace as a global, <folder>Dev, for /run probes in game: holders, looks, settings.
+_G[addon .. "Dev"] = ns
+
 ---@return AddonDevData
 local function Dev()
     return E.global[addon].dev
