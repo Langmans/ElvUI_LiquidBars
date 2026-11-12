@@ -47,6 +47,7 @@ ElvUI = nil
 ---Smooth Animated Bars' theme (Themes.lua), as far as the plugin reads it.
 ---@class AddonTheme
 ---@field name string
+---@field fillB? number[] the colour at the liquid's front, its main colour
 ---@field physics? table<string, number>
 ---@field Resolve? fun(self: AddonTheme, unit: string?, preview: boolean?): AddonTheme?
 
@@ -138,6 +139,8 @@ ElvUI = nil
 ---@field clip Frame cuts the liquid off at the bar
 ---@field mover Frame one bar wide, on the fill's right edge
 ---@field front Frame holds the liquid's front (its line and glow), faded on a full bar
+---@field over Frame holds ElvUI's overlays above the liquid (cutaway, power prediction), never faded
+---@field prediction? StatusBar ElvUI's power prediction bar while it is above this liquid
 ---@field effects? AddonEffects the effect switches the liquid was given
 ---@field fill Texture? the bar's fill, kept hidden while the liquid is live
 ---@field anchored Texture? the fill the mover is anchored to
@@ -187,6 +190,7 @@ ElvUI = nil
 ---@field bigRaid number raids of more members than this are big raids
 ---@field fadeFront boolean
 ---@field aboveOverlays boolean the liquid above ElvUI's overlays (power prediction, cutaway)
+---@field tintPrediction boolean ElvUI's power prediction in the liquid's colour
 
 ---Development screenshots' saved data (Dev.lua), in ElvUI's global data.
 ---@class AddonDevData

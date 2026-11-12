@@ -241,7 +241,7 @@ function NewClient(opts)
     end
     ---As a texture's: a fourth value sets its alpha too (ElvUI's transparent bars).
     function Region:SetVertexColor(r, g, b, a)
-        self.vertex = { r, g, b }
+        self.vertex = { r, g, b, a }
         if a then self.alpha = a end
     end
     function Region:SetTexCoord(...)
@@ -299,11 +299,13 @@ function NewClient(opts)
     function Frame:GetStatusBarTexture()
         return self.fill
     end
-    function Frame:SetStatusBarColor(r, g, b)
-        self.color = { r, g, b }
+    ---As the client's: the colour goes onto the fill texture too.
+    function Frame:SetStatusBarColor(r, g, b, a)
+        self.color = { r, g, b, a or 1 }
+        if self.fill then self.fill.vertex = { r, g, b, a or 1 } end
     end
     function Frame:GetStatusBarColor()
-        return self.color[1], self.color[2], self.color[3], 1
+        return self.color[1], self.color[2], self.color[3], self.color[4] or 1
     end
     function Frame:SetOrientation(o)
         self.orientation = o
@@ -407,7 +409,7 @@ function NewClient(opts)
         return Themes.list[key] or Themes.list[Themes.default]
     end
     function Themes.FromColor(c, template)
-        return setmetatable({ color = c }, { __index = template })
+        return setmetatable({ color = c, fillB = c }, { __index = template })
     end
     function Themes.UnitColor(unit)
         return client.classColors[unit]
@@ -525,7 +527,9 @@ function NewClient(opts)
         }
         -- ElvUI's power prediction bar in the power bar's ClipFrame, with no range yet (as after login).
         local prediction = CreateFrame("StatusBar", nil, frame.Power.ClipFrame)
+        prediction.fill = prediction:CreateTexture()
         prediction.min, prediction.max = 0, 0
+        prediction:SetStatusBarColor(1, 1, 1, 0.7)
         frame.PowerPrediction = { mainBar = prediction }
         client.frames[key] = frame
         E.oUF.objects[#E.oUF.objects + 1] = frame

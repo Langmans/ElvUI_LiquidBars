@@ -86,6 +86,16 @@ describe("the options", function()
         assert.are.equal(bar:GetFrameLevel(), client.ns.holders[bar].clip:GetFrameLevel(), "applied at once")
     end)
 
+    it("switch the prediction's colour", function()
+        local client, args = options()
+        local tint = args.tintPrediction
+        assert.is_true(tint.get())
+        tint.set(nil, false)
+        assert.is_false(client:db().tintPrediction)
+        local prediction = client.frames.player.PowerPrediction.mainBar
+        assert.are.same({ 1, 1, 1, 0.7 }, prediction.fill.vertex, "ElvUI's colour, at once")
+    end)
+
     it("switch the fading front", function()
         local client, args = options()
         local fade = args.effects.args.fadeFront

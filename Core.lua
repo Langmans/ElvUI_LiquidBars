@@ -70,6 +70,8 @@ P[addon] = {
     fadeFront = true,
     -- The liquid above ElvUI's overlays on a bar (power prediction, cutaway).
     aboveOverlays = true,
+    -- ElvUI's power prediction above the liquid in the liquid's colour, darker.
+    tintPrediction = true,
 }
 
 ---The plugin's settings in the current ElvUI profile.

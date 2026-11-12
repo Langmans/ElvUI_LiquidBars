@@ -219,6 +219,32 @@ local function EffectsTab()
     }
 end
 
+---A switch on the plugin's page for one of its settings, applied at once.
+---@param order number
+---@param key "aboveOverlays"|"tintPrediction"
+---@param name string
+---@param desc string
+---@return table
+local function Switch(order, key, name, desc)
+    return {
+        type = "toggle",
+        order = order,
+        width = "full",
+        name = name,
+        desc = desc,
+        ---@return boolean
+        get = function()
+            return ns.db()[key]
+        end,
+        ---@param _ table AceConfig's info
+        ---@param value boolean
+        set = function(_, value)
+            ns.db()[key] = value
+            ns.ApplyAll()
+        end,
+    }
+end
+
 ---LibElvUIPlugin calls this once ElvUI's options are loaded.
 function ns.InsertOptions()
     if not E.Options then return end
@@ -228,23 +254,8 @@ function ns.InsertOptions()
         childGroups = "tab",
         args = {
             desc = { type = "description", order = 0, name = L.OPTIONS_DESC },
-            aboveOverlays = {
-                type = "toggle",
-                order = 1,
-                width = "full",
-                name = L.ABOVE_OVERLAYS,
-                desc = L.ABOVE_OVERLAYS_DESC,
-                ---@return boolean
-                get = function()
-                    return ns.db().aboveOverlays
-                end,
-                ---@param _ table AceConfig's info
-                ---@param value boolean
-                set = function(_, value)
-                    ns.db().aboveOverlays = value
-                    ns.ApplyAll()
-                end,
-            },
+            aboveOverlays = Switch(1, "aboveOverlays", L.ABOVE_OVERLAYS, L.ABOVE_OVERLAYS_DESC),
+            tintPrediction = Switch(2, "tintPrediction", L.TINT_PREDICTION, L.TINT_PREDICTION_DESC),
             units = UnitsTab(),
             data = DataTab(),
             power = PowerTab(),

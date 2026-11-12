@@ -9,7 +9,9 @@ L.OPTIONS = "Liquid Bars"
 L.OPTIONS_DESC = "Smooth Animated Bars' liquid in ElvUI's bars. Only its files are used: switch off its own bars and nameplates (/sab), which ElvUI hides anyway, and it costs nothing. On a bar filled from the right the liquid flows the other way; vertical bars keep ElvUI's fill."
 
 L.ABOVE_OVERLAYS = "Liquid above ElvUI's overlays"
-L.ABOVE_OVERLAYS_DESC = "Above ElvUI's power prediction (a spell's cost) and cutaway on the bar, which otherwise draw over the liquid. Still under the bar's texts."
+L.ABOVE_OVERLAYS_DESC = "The liquid above ElvUI's overlay frame on the bar, which otherwise draws over it. ElvUI's power prediction (a spell's cost) and cutaway are kept above the liquid; the bar's texts stay on top."
+L.TINT_PREDICTION = "Power prediction in the liquid's colour"
+L.TINT_PREDICTION_DESC = "ElvUI's power prediction above the liquid takes the liquid's colour, darker, instead of ElvUI's power prediction colour."
 
 -- The look of a bar: ElvUI's colour, by power type, or one of Smooth Animated Bars' themes.
 L.THEME = "Look"

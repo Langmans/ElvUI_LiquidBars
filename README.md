@@ -31,6 +31,8 @@ ElvUI → Plugins → **Liquid Bars**:
 which otherwise drew over it; the bar's texts stay on top. ElvUI's cutaway (the lost health or power
 fading away) and power prediction (a spell's cost) are kept above the liquid; the prediction only
 shows while it has a range, since after login ElvUI leaves it shown with none, filling the bar.
+**Power prediction in the liquid's colour** (on by default) draws it in the liquid's own colour,
+darker, instead of ElvUI's power prediction colour.
 
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
@@ -87,13 +89,18 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   gives a value the client may keep secret but `SetAlpha` takes; other bars by their own values.
 - Layers (`Bar.lua`, `Layer`): with *Liquid above ElvUI's overlays* the clip frame goes two levels
   above the bar (ElvUI's ClipFrame is one up, the power prediction in it two), the liquid's frame one
-  more, its front one more. ElvUI's cutaway texture (`frame.Cutaway.Health`/`.Power`) is moved onto
-  the front frame while the liquid is live and back into ElvUI's ClipFrame on `Detach` or with the
+  more, its front one more, and an overlay frame (`holder.over`) one more. The overlay frame holds
+  ElvUI's overlays and never fades (the front does, on a full bar, which hid a cost block at full
+  mana). ElvUI's cutaway texture (`frame.Cutaway.Health`/`.Power`) is moved onto it while the
+  liquid is live and back into ElvUI's ClipFrame on `Detach` or with the
   option off; its anchors, colour and fading stay ElvUI's. The power prediction's bar
   (`frame.PowerPrediction.mainBar`) goes the same way, one level over the front. After login ElvUI
   leaves it shown with a range of 0..0, which fills the whole bar (that covered the liquid in
   Eltruism's light mode until ElvUI configured the bar again), so while it is above a liquid a hook
   on its `SetMinMaxValues` keeps its alpha at 0 without a range; a secret range counts as one.
+  Its fill gets the liquid's look's `fillB`, darker (×0.6), alpha 0.85, again whenever the liquid
+  gets another look and whenever ElvUI sets its colour (a hook on its `SetStatusBarColor`); with
+  the option off, on detach, or for a look without `fillB`, ElvUI's colour.
 - Levels (`Core.lua`): `ns.levels` holds Smooth Animated Bars' three levels as fixed tables, the
   custom level is the profile's `effects`. `ns.Effects()` picks by `IsInRaid`/`GetNumGroupMembers`;
   `GROUP_ROSTER_UPDATE` hands every liquid its table (`SetOptions`) when it changed.

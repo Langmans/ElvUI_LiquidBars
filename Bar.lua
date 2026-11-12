@@ -70,6 +70,10 @@ local function Choice(holder)
     return ns.db().power[token] or "elvui"
 end
 
+-- ElvUI's power prediction in the liquid's colour; defined with the overlays below.
+---@type fun(prediction: StatusBar)
+local Tint
+
 -- Looks made so far, by choice or colour and by height, shared by every bar that needs the same
 -- one. Smooth Animated Bars' SetTheme builds a dozen tables and drops the liquid's particles, so a
 -- liquid only gets another look when it is another object. Cleared when the settings change.
@@ -133,6 +137,7 @@ function ns.Recolor(holder, force)
     if look == holder.look then return end
     holder.look = look
     holder.liquid:SetTheme(look)
+    if holder.prediction then Tint(holder.prediction) end
 end
 
 ---Ripples the liquid's front and throws motes off it, at most every SPLASH_EVERY seconds unless
@@ -306,11 +311,29 @@ end
 
 -- ElvUI's cutaway texture on a frame, by the kind of bar (UF:Construct_Cutaway).
 local CUTAWAY = { health = "Health", power = "Power" }
--- ElvUI's power prediction bars above a liquid now, and those whose SetMinMaxValues is hooked.
----@type table<StatusBar, boolean>
+-- ElvUI's power prediction bars above a liquid now, by the liquid's holder, and those whose
+-- SetMinMaxValues and SetStatusBarColor are hooked.
+---@type table<StatusBar, AddonHolder>
 local predictions = {}
 ---@type table<StatusBar, boolean>
-local ranged = {}
+local hookedPrediction = {}
+-- The prediction in the liquid's colour: its look's main colour, darker, a little see-through.
+local TINT_SHADE = 0.6
+local TINT_ALPHA = 0.85
+
+---The prediction's colour: the liquid's (Tint above), or with the option off, without a liquid or for
+---a look without a colour, ElvUI's own (the bar's status bar colour).
+---@param prediction StatusBar
+Tint = function(prediction)
+    local holder = predictions[prediction]
+    local color = holder and ns.db().tintPrediction and holder.look and holder.look.fillB
+    local fill = prediction:GetStatusBarTexture()
+    if color then
+        fill:SetVertexColor(color[1] * TINT_SHADE, color[2] * TINT_SHADE, color[3] * TINT_SHADE, TINT_ALPHA)
+    else
+        fill:SetVertexColor(prediction:GetStatusBarColor())
+    end
+end
 
 ---ElvUI's power prediction bar above a liquid shows only with a range: after login it is shown with
 ---none (0..0), which fills the whole bar. A range the client hides cannot be compared: shown.
@@ -325,8 +348,9 @@ local function ShowRange(prediction)
     prediction:SetAlpha(high > low and 1 or 0)
 end
 
----ElvUI's power prediction (a spell's cost) above the liquid, one level over its front, while the
----liquid is above ElvUI's overlays; else back in ElvUI's ClipFrame, shown as ElvUI shows it.
+---ElvUI's power prediction (a spell's cost) above the liquid, one level over the overlay frame, in
+---the liquid's colour, while the liquid is above ElvUI's overlays; else back in ElvUI's ClipFrame,
+---shown and coloured as ElvUI does.
 ---@param holder AddonHolder
 ---@param frame AddonFrame
 ---@param above boolean
@@ -334,26 +358,30 @@ local function Prediction(holder, frame, above)
     local prediction = holder.kind == "power" and frame.PowerPrediction and frame.PowerPrediction.mainBar
     if not prediction then return end
     if not above then
-        predictions[prediction] = nil
+        predictions[prediction], holder.prediction = nil, nil
         local clipFrame = (holder.bar --[[@as AddonBar]]).ClipFrame or holder.bar
         prediction:SetParent(clipFrame)
         prediction:SetFrameLevel(clipFrame:GetFrameLevel() + 1)
         prediction:SetAlpha(1)
+        Tint(prediction)
         return
     end
-    if not ranged[prediction] then
-        ranged[prediction] = true
+    if not hookedPrediction[prediction] then
+        hookedPrediction[prediction] = true
         hooksecurefunc(prediction, "SetMinMaxValues", ShowRange)
+        hooksecurefunc(prediction, "SetStatusBarColor", Tint)
     end
-    predictions[prediction] = true
-    prediction:SetParent(holder.front)
-    prediction:SetFrameLevel(holder.front:GetFrameLevel() + 1)
+    predictions[prediction], holder.prediction = holder, prediction
+    prediction:SetParent(holder.over)
+    prediction:SetFrameLevel(holder.over:GetFrameLevel() + 1)
     ShowRange(prediction)
+    Tint(prediction)
 end
 
----ElvUI's overlays on a unit frame's bar above the liquid, on its front frame, while the liquid is
----above them; else back in ElvUI's ClipFrame. The cutaway (the lost health or power fading away):
----its anchors, colour and fading stay ElvUI's. The power prediction: see Prediction.
+---ElvUI's overlays on a unit frame's bar above the liquid, on the overlay frame (above the liquid's
+---front, never faded), while the liquid is above them; else back in ElvUI's ClipFrame. The cutaway
+---(the lost health or power fading away): its anchors, colour and fading stay ElvUI's. The power
+---prediction: see Prediction.
 ---@param holder AddonHolder
 ---@param above boolean
 local function Overlays(holder, above)
@@ -367,13 +395,14 @@ local function Overlays(holder, above)
     local cutaway = cutaways[part]
     if not cutaway then return end
     local bar = holder.bar --[[@as AddonBar]]
-    cutaway:SetParent(above and holder.front or bar.ClipFrame or bar)
+    cutaway:SetParent(above and holder.over or bar.ClipFrame or bar)
 end
 
 ---The liquid's frame levels, from the bar's: above ElvUI's overlays on the bar (its ClipFrame one
 ---level up, with the power prediction and the cutaway, which drew over the liquid) unless switched
----off; the liquid's frame one above that, its front one above the liquid. Set again on every attach,
----as ElvUI may give the bar another level.
+---off; the liquid's frame one above that, its front one above the liquid, the overlay frame for
+---ElvUI's overlays one above the front. Set again on every attach, as ElvUI may give the bar another
+---level.
 ---@param holder AddonHolder
 local function Layer(holder)
     local above = ns.db().aboveOverlays
@@ -381,6 +410,7 @@ local function Layer(holder)
     holder.clip:SetFrameLevel(level)
     holder.mover:SetFrameLevel(level + 1)
     holder.front:SetFrameLevel(level + 2)
+    holder.over:SetFrameLevel(level + 3)
     Overlays(holder, above)
 end
 
@@ -399,10 +429,14 @@ local function Build(bar, width, height, reversed)
     -- The liquid's front, above the rest of it. The levels: Layer.
     local front = CreateFrame("Frame", nil, clip)
     front:SetAllPoints(clip)
+    -- ElvUI's overlays (cutaway, power prediction) when above the liquid: over the front, never faded.
+    local over = CreateFrame("Frame", nil, clip)
+    over:SetAllPoints(clip)
     ---@type AddonHolder
     local holder = {
         bar = bar,
         clip = clip,
+        over = over,
         mover = mover,
         front = front,
         liquids = {},
