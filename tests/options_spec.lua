@@ -76,6 +76,16 @@ describe("the options", function()
         assert.are.equal(10, client:db().bigRaid)
     end)
 
+    it("switch the liquid above ElvUI's overlays", function()
+        local client, args = options()
+        local above = args.aboveOverlays
+        assert.is_true(above.get())
+        above.set(nil, false)
+        assert.is_false(client:db().aboveOverlays)
+        local bar = client.frames.player.Power
+        assert.are.equal(bar:GetFrameLevel(), client.ns.holders[bar].clip:GetFrameLevel(), "applied at once")
+    end)
+
     it("switch the fading front", function()
         local client, args = options()
         local fade = args.effects.args.fadeFront

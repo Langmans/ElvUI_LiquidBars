@@ -180,6 +180,7 @@ ElvUI = nil
 ---@field levels table<string, string> the level per group size: "party", "raid", "bigRaid"
 ---@field bigRaid number raids of more members than this are big raids
 ---@field fadeFront boolean
+---@field aboveOverlays boolean the liquid above ElvUI's overlays (power prediction, cutaway)
 
 ---Development screenshots' saved data (Dev.lua), in ElvUI's global data.
 ---@class AddonDevData

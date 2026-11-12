@@ -228,6 +228,23 @@ function ns.InsertOptions()
         childGroups = "tab",
         args = {
             desc = { type = "description", order = 0, name = L.OPTIONS_DESC },
+            aboveOverlays = {
+                type = "toggle",
+                order = 1,
+                width = "full",
+                name = L.ABOVE_OVERLAYS,
+                desc = L.ABOVE_OVERLAYS_DESC,
+                ---@return boolean
+                get = function()
+                    return ns.db().aboveOverlays
+                end,
+                ---@param _ table AceConfig's info
+                ---@param value boolean
+                set = function(_, value)
+                    ns.db().aboveOverlays = value
+                    ns.ApplyAll()
+                end,
+            },
             units = UnitsTab(),
             data = DataTab(),
             power = PowerTab(),

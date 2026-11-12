@@ -27,6 +27,9 @@ ElvUI → Plugins → **Liquid Bars**:
   liquid changes level as the group does. *Fade the front on a full bar* (on) fades the bright line
   on the liquid's edge over the last few percent.
 
+**Liquid above ElvUI's overlays** (on by default) puts the liquid above ElvUI's power prediction (a
+spell's cost) and cutaway, which otherwise draw over it; the bar's texts stay on top.
+
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
 

@@ -18,6 +18,7 @@ local SPLASH_FROM = 8 -- px back from the front the splash's motes start
 local FULL_HEIGHT = 40
 local LEAST = 0.25
 local COLOR_STEPS = 20 -- ElvUI's colour is taken in steps of a twentieth per channel
+local OVERLAYS = 2 -- levels above a bar ElvUI's overlays reach (ClipFrame +1, its bars +2)
 -- Smooth Animated Bars' defaults for the movement a theme scales.
 local PHYSICS = { amplitude = 10, crest = 7, ambient = 1, slosh = 0.18 }
 -- Where the liquid's frame sits on the fill: its front edge, by whether the bar fills from the right.
@@ -303,6 +304,18 @@ local function LiquidFor(holder, reversed)
     return liquid
 end
 
+---The liquid's frame levels, from the bar's: above ElvUI's overlays on the bar (its ClipFrame one
+---level up, with the power prediction and the cutaway, which drew over the liquid) unless switched
+---off; the liquid's frame one above that, its front one above the liquid. Set again on every attach,
+---as ElvUI may give the bar another level.
+---@param holder AddonHolder
+local function Layer(holder)
+    local level = holder.bar:GetFrameLevel() + (ns.db().aboveOverlays and OVERLAYS or 0)
+    holder.clip:SetFrameLevel(level)
+    holder.mover:SetFrameLevel(level + 1)
+    holder.front:SetFrameLevel(level + 2)
+end
+
 ---The frames and the liquid for a bar, made once.
 ---@param bar StatusBar
 ---@param width number
@@ -311,15 +324,13 @@ end
 ---@return AddonHolder
 local function Build(bar, width, height, reversed)
     local clip = CreateFrame("Frame", nil, bar)
-    clip:SetFrameLevel(bar:GetFrameLevel())
     clip:SetAllPoints(bar)
     clip:SetClipsChildren(true)
     clip:Hide()
     local mover = CreateFrame("Frame", nil, clip)
-    -- The liquid's front, above the rest of it.
+    -- The liquid's front, above the rest of it. The levels: Layer.
     local front = CreateFrame("Frame", nil, clip)
     front:SetAllPoints(clip)
-    front:SetFrameLevel(mover:GetFrameLevel() + 1)
     ---@type AddonHolder
     local holder = {
         bar = bar,
@@ -420,6 +431,7 @@ function ns.Attach(bar, kind, setting, owner)
     holder.kind, holder.setting, holder.owner = kind, setting, owner
     holder.width, holder.height = width, height
     holder.mover:SetWidth(width)
+    Layer(holder)
     local liquid = holder.liquid
     liquid:SetSize(width + ROOM, height)
     holder.effects = ns.Effects()

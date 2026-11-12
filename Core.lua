@@ -68,6 +68,8 @@ P[addon] = {
     bigRaid = 20,
     -- The liquid's bright front fades out as the bar fills its last few percent.
     fadeFront = true,
+    -- The liquid above ElvUI's overlays on a bar (power prediction, cutaway).
+    aboveOverlays = true,
 }
 
 ---The plugin's settings in the current ElvUI profile.
