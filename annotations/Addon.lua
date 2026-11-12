@@ -38,6 +38,7 @@ ElvUI = nil
 ---@field Health StatusBar?
 ---@field Power StatusBar?
 ---@field Cutaway? table<string, Texture> ElvUI's cutaway textures, "Health" and "Power"
+---@field PowerPrediction? {mainBar: StatusBar?} ElvUI's power prediction (UF:Construct_PowerPrediction)
 
 ---One of ElvUI's unit frame bars, with the ClipFrame ElvUI puts on it.
 ---@class AddonBar: StatusBar

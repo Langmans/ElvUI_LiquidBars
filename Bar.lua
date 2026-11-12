@@ -306,17 +306,63 @@ end
 
 -- ElvUI's cutaway texture on a frame, by the kind of bar (UF:Construct_Cutaway).
 local CUTAWAY = { health = "Health", power = "Power" }
+-- ElvUI's power prediction bars above a liquid now, and those whose SetMinMaxValues is hooked.
+---@type table<StatusBar, boolean>
+local predictions = {}
+---@type table<StatusBar, boolean>
+local ranged = {}
 
----ElvUI's cutaway (the lost health or power fading away) above the liquid, on its front frame,
----while the liquid is above ElvUI's overlays; else back in ElvUI's ClipFrame. Its anchors, colour
----and fading stay ElvUI's.
+---ElvUI's power prediction bar above a liquid shows only with a range: after login it is shown with
+---none (0..0), which fills the whole bar. A range the client hides cannot be compared: shown.
+---@param prediction StatusBar
+local function ShowRange(prediction)
+    if not predictions[prediction] then return end
+    local low, high = prediction:GetMinMaxValues()
+    if ns.IsSecret(low) or ns.IsSecret(high) then
+        prediction:SetAlpha(1)
+        return
+    end
+    prediction:SetAlpha(high > low and 1 or 0)
+end
+
+---ElvUI's power prediction (a spell's cost) above the liquid, one level over its front, while the
+---liquid is above ElvUI's overlays; else back in ElvUI's ClipFrame, shown as ElvUI shows it.
+---@param holder AddonHolder
+---@param frame AddonFrame
+---@param above boolean
+local function Prediction(holder, frame, above)
+    local prediction = holder.kind == "power" and frame.PowerPrediction and frame.PowerPrediction.mainBar
+    if not prediction then return end
+    if not above then
+        predictions[prediction] = nil
+        local clipFrame = (holder.bar --[[@as AddonBar]]).ClipFrame or holder.bar
+        prediction:SetParent(clipFrame)
+        prediction:SetFrameLevel(clipFrame:GetFrameLevel() + 1)
+        prediction:SetAlpha(1)
+        return
+    end
+    if not ranged[prediction] then
+        ranged[prediction] = true
+        hooksecurefunc(prediction, "SetMinMaxValues", ShowRange)
+    end
+    predictions[prediction] = true
+    prediction:SetParent(holder.front)
+    prediction:SetFrameLevel(holder.front:GetFrameLevel() + 1)
+    ShowRange(prediction)
+end
+
+---ElvUI's overlays on a unit frame's bar above the liquid, on its front frame, while the liquid is
+---above them; else back in ElvUI's ClipFrame. The cutaway (the lost health or power fading away):
+---its anchors, colour and fading stay ElvUI's. The power prediction: see Prediction.
 ---@param holder AddonHolder
 ---@param above boolean
-local function Cutaway(holder, above)
-    local owner, part = holder.owner, CUTAWAY[holder.kind]
-    if type(owner) ~= "table" or not part then return end
-    local cutaways = (owner --[[@as AddonFrame]]).Cutaway
-    if not cutaways then return end
+local function Overlays(holder, above)
+    local owner = holder.owner
+    if type(owner) ~= "table" then return end
+    local frame = owner --[[@as AddonFrame]]
+    Prediction(holder, frame, above)
+    local part, cutaways = CUTAWAY[holder.kind], frame.Cutaway
+    if not part or not cutaways then return end
     ---@type Texture?
     local cutaway = cutaways[part]
     if not cutaway then return end
@@ -335,7 +381,7 @@ local function Layer(holder)
     holder.clip:SetFrameLevel(level)
     holder.mover:SetFrameLevel(level + 1)
     holder.front:SetFrameLevel(level + 2)
-    Cutaway(holder, above)
+    Overlays(holder, above)
 end
 
 ---The frames and the liquid for a bar, made once.
@@ -410,7 +456,7 @@ local function Drop(bar)
     holder.clip:Hide()
     holder.liquid:HideAll()
     bar:GetStatusBarTexture():SetAlpha(holder.alpha)
-    Cutaway(holder, false)
+    Overlays(holder, false)
     if #live == 0 then ns.driver:Hide() end
 end
 

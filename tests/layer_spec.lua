@@ -50,6 +50,41 @@ describe("the liquid's layer", function()
         assert.is_table(client:LiquidOn(frame.Power), "a frame without a cutaway")
     end)
 
+    it("keeps ElvUI's power prediction above the liquid", function()
+        local client = NewClient()
+        local frame = client.frames.player
+        local holder = client.ns.holders[frame.Power]
+        local prediction = frame.PowerPrediction.mainBar
+        assert.are.equal(holder.front, prediction:GetParent())
+        assert.are.equal(holder.front:GetFrameLevel() + 1, prediction:GetFrameLevel())
+    end)
+
+    it("hides the prediction while it has no range, as after login, and shows it with one", function()
+        local client = NewClient()
+        local prediction = client.frames.player.PowerPrediction.mainBar
+        assert.are.equal(0, prediction:GetAlpha(), "0..0 would fill the whole bar")
+        prediction:SetMinMaxValues(0, 314) -- ElvUI updating it for a cast
+        assert.are.equal(1, prediction:GetAlpha())
+        prediction:SetMinMaxValues(0, 0)
+        assert.are.equal(0, prediction:GetAlpha())
+        prediction:SetMinMaxValues(0, SECRET)
+        assert.are.equal(1, prediction:GetAlpha(), "a range the client hides: shown")
+    end)
+
+    it("gives the prediction back to ElvUI on detach and with the option off", function()
+        local client = NewClient()
+        local frame = client.frames.player
+        local prediction = frame.PowerPrediction.mainBar
+        client.ns.Detach(frame.Power)
+        assert.are.equal(frame.Power.ClipFrame, prediction:GetParent())
+        assert.are.equal(1, prediction:GetAlpha())
+        prediction:SetMinMaxValues(0, 0)
+        assert.are.equal(1, prediction:GetAlpha(), "left alone without a liquid")
+        client:db().aboveOverlays = false
+        client:Configure("player")
+        assert.are.equal(frame.Power.ClipFrame, prediction:GetParent())
+    end)
+
     it("is the bar's own when switched off", function()
         local client = NewClient()
         client:db().aboveOverlays = false

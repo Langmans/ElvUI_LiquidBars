@@ -27,9 +27,10 @@ ElvUI → Plugins → **Liquid Bars**:
   liquid changes level as the group does. *Fade the front on a full bar* (on) fades the bright line
   on the liquid's edge over the last few percent.
 
-**Liquid above ElvUI's overlays** (on by default) puts the liquid above ElvUI's power prediction (a
-spell's cost), which otherwise draws a grey block over it; the bar's texts stay on top. ElvUI's
-cutaway (the lost health or power fading away) is kept above the liquid.
+**Liquid above ElvUI's overlays** (on by default) puts the liquid above ElvUI's ClipFrame on a bar,
+which otherwise drew over it; the bar's texts stay on top. ElvUI's cutaway (the lost health or power
+fading away) and power prediction (a spell's cost) are kept above the liquid; the prediction only
+shows while it has a range, since after login ElvUI leaves it shown with none, filling the bar.
 
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
@@ -88,7 +89,11 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   above the bar (ElvUI's ClipFrame is one up, the power prediction in it two), the liquid's frame one
   more, its front one more. ElvUI's cutaway texture (`frame.Cutaway.Health`/`.Power`) is moved onto
   the front frame while the liquid is live and back into ElvUI's ClipFrame on `Detach` or with the
-  option off; its anchors, colour and fading stay ElvUI's.
+  option off; its anchors, colour and fading stay ElvUI's. The power prediction's bar
+  (`frame.PowerPrediction.mainBar`) goes the same way, one level over the front. After login ElvUI
+  leaves it shown with a range of 0..0, which fills the whole bar (that covered the liquid in
+  Eltruism's light mode until ElvUI configured the bar again), so while it is above a liquid a hook
+  on its `SetMinMaxValues` keeps its alpha at 0 without a range; a secret range counts as one.
 - Levels (`Core.lua`): `ns.levels` holds Smooth Animated Bars' three levels as fixed tables, the
   custom level is the profile's `effects`. `ns.Effects()` picks by `IsInRaid`/`GetNumGroupMembers`;
   `GROUP_ROSTER_UPDATE` hands every liquid its table (`SetOptions`) when it changed.

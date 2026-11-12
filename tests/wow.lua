@@ -324,6 +324,9 @@ function NewClient(opts)
     function Frame:GetMinMaxValues()
         return self.min or 0, self.max or 100
     end
+    function Frame:SetMinMaxValues(low, high)
+        self.min, self.max = low, high
+    end
 
     client.allFrames = {}
     function CreateFrame(kind, _, parent)
@@ -520,6 +523,10 @@ function NewClient(opts)
             Health = frame.Health.ClipFrame:CreateTexture(),
             Power = frame.Power.ClipFrame:CreateTexture(),
         }
+        -- ElvUI's power prediction bar in the power bar's ClipFrame, with no range yet (as after login).
+        local prediction = CreateFrame("StatusBar", nil, frame.Power.ClipFrame)
+        prediction.min, prediction.max = 0, 0
+        frame.PowerPrediction = { mainBar = prediction }
         client.frames[key] = frame
         E.oUF.objects[#E.oUF.objects + 1] = frame
     end
