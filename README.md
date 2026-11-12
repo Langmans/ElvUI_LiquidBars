@@ -28,7 +28,8 @@ ElvUI → Plugins → **Liquid Bars**:
   on the liquid's edge over the last few percent.
 
 **Liquid above ElvUI's overlays** (on by default) puts the liquid above ElvUI's power prediction (a
-spell's cost) and cutaway, which otherwise draw over it; the bar's texts stay on top.
+spell's cost), which otherwise draws a grey block over it; the bar's texts stay on top. ElvUI's
+cutaway (the lost health or power fading away) is kept above the liquid.
 
 A look is **ElvUI's colour** (the bar's own colour, followed as ElvUI changes it), one of Smooth
 Animated Bars' themes (Fire, Frost, Arcane, Class Color, ...), or for a power bar **By power type**.
@@ -83,6 +84,11 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   every frame. Each frame the plugin sets that frame's alpha: 1, fading to 0 between 97% and 100%.
   For a unit's health and power through `UnitHealthPercent`/`UnitPowerPercent` with a curve, which
   gives a value the client may keep secret but `SetAlpha` takes; other bars by their own values.
+- Layers (`Bar.lua`, `Layer`): with *Liquid above ElvUI's overlays* the clip frame goes two levels
+  above the bar (ElvUI's ClipFrame is one up, the power prediction in it two), the liquid's frame one
+  more, its front one more. ElvUI's cutaway texture (`frame.Cutaway.Health`/`.Power`) is moved onto
+  the front frame while the liquid is live and back into ElvUI's ClipFrame on `Detach` or with the
+  option off; its anchors, colour and fading stay ElvUI's.
 - Levels (`Core.lua`): `ns.levels` holds Smooth Animated Bars' three levels as fixed tables, the
   custom level is the profile's `effects`. `ns.Effects()` picks by `IsInRaid`/`GetNumGroupMembers`;
   `GROUP_ROSTER_UPDATE` hands every liquid its table (`SetOptions`) when it changed.

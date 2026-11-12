@@ -28,6 +28,28 @@ describe("the liquid's layer", function()
         assert.are.same({ 22, 23, 24 }, { levels(client, bar) })
     end)
 
+    it("keeps ElvUI's cutaway above the liquid, and gives it back", function()
+        local client = NewClient()
+        local frame = client.frames.player
+        local holder = client.ns.holders[frame.Power]
+        assert.are.equal(holder.front, frame.Cutaway.Power:GetParent())
+        assert.are.equal(client.ns.holders[frame.Health].front, frame.Cutaway.Health:GetParent())
+        client.ns.Detach(frame.Power)
+        assert.are.equal(frame.Power.ClipFrame, frame.Cutaway.Power:GetParent(), "back in ElvUI's ClipFrame")
+    end)
+
+    it("leaves the cutaway in ElvUI's ClipFrame when switched off, or without one", function()
+        local client = NewClient()
+        client:db().aboveOverlays = false
+        client.ns.ApplyAll()
+        local frame = client.frames.player
+        assert.are.equal(frame.Power.ClipFrame, frame.Cutaway.Power:GetParent())
+        frame.Cutaway = nil
+        client:db().aboveOverlays = true
+        client.ns.ApplyAll()
+        assert.is_table(client:LiquidOn(frame.Power), "a frame without a cutaway")
+    end)
+
     it("is the bar's own when switched off", function()
         local client = NewClient()
         client:db().aboveOverlays = false

@@ -304,16 +304,38 @@ local function LiquidFor(holder, reversed)
     return liquid
 end
 
+-- ElvUI's cutaway texture on a frame, by the kind of bar (UF:Construct_Cutaway).
+local CUTAWAY = { health = "Health", power = "Power" }
+
+---ElvUI's cutaway (the lost health or power fading away) above the liquid, on its front frame,
+---while the liquid is above ElvUI's overlays; else back in ElvUI's ClipFrame. Its anchors, colour
+---and fading stay ElvUI's.
+---@param holder AddonHolder
+---@param above boolean
+local function Cutaway(holder, above)
+    local owner, part = holder.owner, CUTAWAY[holder.kind]
+    if type(owner) ~= "table" or not part then return end
+    local cutaways = (owner --[[@as AddonFrame]]).Cutaway
+    if not cutaways then return end
+    ---@type Texture?
+    local cutaway = cutaways[part]
+    if not cutaway then return end
+    local bar = holder.bar --[[@as AddonBar]]
+    cutaway:SetParent(above and holder.front or bar.ClipFrame or bar)
+end
+
 ---The liquid's frame levels, from the bar's: above ElvUI's overlays on the bar (its ClipFrame one
 ---level up, with the power prediction and the cutaway, which drew over the liquid) unless switched
 ---off; the liquid's frame one above that, its front one above the liquid. Set again on every attach,
 ---as ElvUI may give the bar another level.
 ---@param holder AddonHolder
 local function Layer(holder)
-    local level = holder.bar:GetFrameLevel() + (ns.db().aboveOverlays and OVERLAYS or 0)
+    local above = ns.db().aboveOverlays
+    local level = holder.bar:GetFrameLevel() + (above and OVERLAYS or 0)
     holder.clip:SetFrameLevel(level)
     holder.mover:SetFrameLevel(level + 1)
     holder.front:SetFrameLevel(level + 2)
+    Cutaway(holder, above)
 end
 
 ---The frames and the liquid for a bar, made once.
@@ -388,6 +410,7 @@ local function Drop(bar)
     holder.clip:Hide()
     holder.liquid:HideAll()
     bar:GetStatusBarTexture():SetAlpha(holder.alpha)
+    Cutaway(holder, false)
     if #live == 0 then ns.driver:Hide() end
 end
 

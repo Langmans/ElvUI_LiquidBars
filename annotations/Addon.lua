@@ -37,6 +37,11 @@ ElvUI = nil
 ---@field unitframeType string
 ---@field Health StatusBar?
 ---@field Power StatusBar?
+---@field Cutaway? table<string, Texture> ElvUI's cutaway textures, "Health" and "Power"
+
+---One of ElvUI's unit frame bars, with the ClipFrame ElvUI puts on it.
+---@class AddonBar: StatusBar
+---@field ClipFrame? Frame
 
 ---Smooth Animated Bars' theme (Themes.lua), as far as the plugin reads it.
 ---@class AddonTheme

@@ -513,6 +513,13 @@ function NewClient(opts)
         frame.Health = NewBar(frame, SIZES.Health[1], SIZES.Health[2])
         frame.Power = NewBar(frame, SIZES.Power[1], SIZES.Power[2])
         frame.Power.color = { 0, 0.4, 1 }
+        -- ElvUI's ClipFrame on each bar, and the cutaway's textures in them (UF:Construct_Cutaway).
+        frame.Health.ClipFrame = CreateFrame("Frame", nil, frame.Health)
+        frame.Power.ClipFrame = CreateFrame("Frame", nil, frame.Power)
+        frame.Cutaway = {
+            Health = frame.Health.ClipFrame:CreateTexture(),
+            Power = frame.Power.ClipFrame:CreateTexture(),
+        }
         client.frames[key] = frame
         E.oUF.objects[#E.oUF.objects + 1] = frame
     end
