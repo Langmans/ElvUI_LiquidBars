@@ -317,9 +317,41 @@ local CUTAWAY = { health = "Health", power = "Power" }
 local predictions = {}
 ---@type table<StatusBar, boolean>
 local hookedPrediction = {}
--- The prediction in the liquid's colour: its look's main colour, darker, a little see-through.
-local TINT_SHADE = 0.6
+-- The prediction in the liquid's colour: its look's main colour's hue and saturation at one fixed
+-- lightness, dark enough for the bar's white text on any liquid, a little see-through.
+local TINT_LIGHTNESS = 0.3
 local TINT_ALPHA = 0.85
+
+---A colour's hue and saturation (HSL) at TINT_LIGHTNESS; a grey stays grey.
+---@param r number
+---@param g number
+---@param b number
+---@return number r, number g, number b
+local function Shade(r, g, b)
+    local high, low = math.max(r, g, b), math.min(r, g, b)
+    local spread = high - low
+    if spread == 0 then return TINT_LIGHTNESS, TINT_LIGHTNESS, TINT_LIGHTNESS end
+    local saturation = math.min(1, spread / (1 - math.abs(high + low - 1)))
+    -- The hue in sixths of the circle, 0 up to 6.
+    local hue
+    if high == r then
+        hue = ((g - b) / spread) % 6
+    elseif high == g then
+        hue = (b - r) / spread + 2
+    else
+        hue = (r - g) / spread + 4
+    end
+    local chroma = (1 - math.abs(2 * TINT_LIGHTNESS - 1)) * saturation
+    local x = chroma * (1 - math.abs(hue % 2 - 1))
+    local m = TINT_LIGHTNESS - chroma / 2
+    local sector = math.floor(hue)
+    if sector == 0 then return chroma + m, x + m, m end
+    if sector == 1 then return x + m, chroma + m, m end
+    if sector == 2 then return m, chroma + m, x + m end
+    if sector == 3 then return m, x + m, chroma + m end
+    if sector == 4 then return x + m, m, chroma + m end
+    return chroma + m, m, x + m
+end
 
 ---The prediction's colour: the liquid's (Tint above), or with the option off, without a liquid or for
 ---a look without a colour, ElvUI's own (the bar's status bar colour).
@@ -329,7 +361,8 @@ Tint = function(prediction)
     local color = holder and ns.db().tintPrediction and holder.look and holder.look.fillB
     local fill = prediction:GetStatusBarTexture()
     if color then
-        fill:SetVertexColor(color[1] * TINT_SHADE, color[2] * TINT_SHADE, color[3] * TINT_SHADE, TINT_ALPHA)
+        local r, g, b = Shade(color[1], color[2], color[3])
+        fill:SetVertexColor(r, g, b, TINT_ALPHA)
     else
         fill:SetVertexColor(prediction:GetStatusBarColor())
     end

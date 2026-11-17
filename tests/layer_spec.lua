@@ -108,21 +108,69 @@ describe("the power prediction's colour", function()
         return { v[1], v[2], v[3], v[4] }
     end
 
+    ---Whether two colours are the same, to rounding.
+    local function near(expected, actual)
+        for i = 1, #expected do
+            if math.abs(expected[i] - actual[i]) > 1e-9 then return false end
+        end
+        return true
+    end
+
     it("is the liquid's, darker, and follows its look", function()
         local client = NewClient()
         local frame = client.frames.player
         local prediction = frame.PowerPrediction.mainBar
-        assert.are.same({ 0, 0.4 * 0.6, 0.6, 0.85 }, drawn(prediction), "mana: ElvUI's blue, darker")
+        assert.is_true(near({ 0, 0.24, 0.6, 0.85 }, drawn(prediction)), "mana: ElvUI's blue, darker")
         frame.Power:SetStatusBarColor(1, 0, 0)
         client:Advance(0.3)
-        assert.are.same({ 0.6, 0, 0, 0.85 }, drawn(prediction))
+        assert.is_true(near({ 0.6, 0, 0, 0.85 }, drawn(prediction)))
+    end)
+
+    it("keeps the hue all round the circle, at a lightness of 0.3", function()
+        local client = NewClient()
+        local frame = client.frames.player
+        local prediction = frame.PowerPrediction.mainBar
+        -- One colour per sixth of the hue circle, and which channel is strongest in it.
+        for _, case in ipairs({
+            { { 1, 0.5, 0 }, 1 },
+            { { 0.5, 1, 0 }, 2 },
+            { { 0, 1, 0.5 }, 2 },
+            { { 0, 0.5, 1 }, 3 },
+            { { 0.5, 0, 1 }, 3 },
+            { { 1, 0, 0.5 }, 1 },
+        }) do
+            local color, strongest = case[1], case[2]
+            frame.Power:SetStatusBarColor(color[1], color[2], color[3])
+            client:Advance(0.3)
+            local c = drawn(prediction)
+            local high, low = math.max(c[1], c[2], c[3]), math.min(c[1], c[2], c[3])
+            assert.is_near(0.3, (high + low) / 2, 1e-9, "lightness")
+            assert.are.equal(high, c[strongest], "the same channel strongest")
+        end
+    end)
+
+    it("is as dark for a light liquid, its hue and saturation kept, for the bar's white text", function()
+        local client = NewClient()
+        local frame = client.frames.player
+        local prediction = frame.PowerPrediction.mainBar
+        frame.Power:SetStatusBarColor(0.6, 0.8, 1) -- a light blue: lightness 0.8
+        client:Advance(0.3)
+        local c = drawn(prediction)
+        assert.is_near(0, c[1], 1e-9)
+        assert.is_near(0.3, c[2], 1e-9)
+        assert.is_near(0.6, c[3], 1e-9, "hue 210, fully saturated, lightness 0.3")
+        frame.Power:SetStatusBarColor(0.5, 0.5, 0.5)
+        client:Advance(0.3)
+        c = drawn(prediction)
+        assert.is_near(0.3, c[1], 1e-9, "a grey stays grey")
+        assert.is_near(0.3, c[3], 1e-9)
     end)
 
     it("stays the liquid's when ElvUI colours it again", function()
         local client = NewClient()
         local prediction = client.frames.player.PowerPrediction.mainBar
         prediction:SetStatusBarColor(1, 1, 1, 0.7) -- Eltruism's white
-        assert.are.same({ 0, 0.4 * 0.6, 0.6, 0.85 }, drawn(prediction))
+        assert.is_true(near({ 0, 0.24, 0.6, 0.85 }, drawn(prediction)))
     end)
 
     it("is ElvUI's when switched off, on detach, or for a look without a colour", function()

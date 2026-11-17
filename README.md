@@ -98,7 +98,9 @@ These are Smooth Animated Bars' internals, not a published API: if it renames th
   leaves it shown with a range of 0..0, which fills the whole bar (that covered the liquid in
   Eltruism's light mode until ElvUI configured the bar again), so while it is above a liquid a hook
   on its `SetMinMaxValues` keeps its alpha at 0 without a range; a secret range counts as one.
-  Its fill gets the liquid's look's `fillB`, darker (×0.6), alpha 0.85, again whenever the liquid
+  Its fill gets the hue and saturation (HSL) of the liquid's look's `fillB` at a fixed lightness of
+  0.3, so the bar's white text reads on it whatever the liquid's colour, alpha 0.85, again whenever
+  the liquid
   gets another look and whenever ElvUI sets its colour (a hook on its `SetStatusBarColor`); with
   the option off, on detach, or for a look without `fillB`, ElvUI's colour.
 - Levels (`Core.lua`): `ns.levels` holds Smooth Animated Bars' three levels as fixed tables, the
