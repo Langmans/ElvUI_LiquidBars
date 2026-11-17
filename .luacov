@@ -8,11 +8,10 @@ return {
     include = {
         "^%./[%w]+$",
         "^%./Locales/",
-        "^%./Data/",
         "^[%w]+$",
         "^Locales/",
-        "^Data/",
     },
-    exclude = { "tests/", "annotations/", "tools/" },
-    includeuntestedfiles = { "Locales", "Data" },
+    exclude = { "tests/", "annotations/" },
+    -- Folders only: every folder named here must exist, or luacov on Linux (CI) stops.
+    includeuntestedfiles = { "Locales" },
 }
